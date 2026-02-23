@@ -27,6 +27,7 @@ export default function Schedules() {
   const [schedules, setSchedules] = useState<ScheduleRow[]>([]);
   const [faculty, setFaculty] = useState<UserOption[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
     subject: '',
     room: '',
@@ -37,6 +38,7 @@ export default function Schedules() {
   });
 
   useEffect(() => {
+    setError(null);
     Promise.all([
       api.get<ScheduleRow[]>('/api/schedules'),
       api.get<UserOption[]>('/api/users'),
@@ -47,7 +49,10 @@ export default function Schedules() {
         setFaculty(facultyList);
         if (facultyList.length && !form.faculty_id) setForm((f) => ({ ...f, faculty_id: facultyList[0].id }));
       })
-      .catch(() => {})
+      .catch((err) => {
+        const msg = err instanceof Error ? err.message : 'Request failed';
+        setError(msg.includes('fetch') || msg.includes('Failed') ? 'Cannot reach server. Start the app with: npm run dev (backend must run on port 3001).' : msg);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -70,6 +75,11 @@ export default function Schedules() {
     <div className={styles.page}>
       <h1 className={styles.h1}>Schedules</h1>
       <p className={styles.muted}>Class schedule configuration (admin can add).</p>
+      {error && (
+        <div className={styles.errorBanner} role="alert">
+          {error}
+        </div>
+      )}
 
       {user?.role === 'admin' && (
         <section className={styles.section}>
