@@ -11,13 +11,20 @@ export interface JwtPayload {
 
 export type AuthRequest = Request & { user: JwtPayload };
 
-export function authMiddleware(req: Request, res: Response, next: NextFunction) {
+function getTokenFromRequest(req: Request): string | null {
+  const cookieToken = req.cookies?.[env.SESSION_COOKIE_NAME];
+  if (cookieToken) return cookieToken;
   const auth = req.headers.authorization;
-  if (!auth?.startsWith('Bearer ')) {
+  if (auth?.startsWith('Bearer ')) return auth.slice(7);
+  return null;
+}
+
+export function authMiddleware(req: Request, res: Response, next: NextFunction) {
+  const token = getTokenFromRequest(req);
+  if (!token) {
     res.status(401).json({ error: 'Missing or invalid authorization' });
     return;
   }
-  const token = auth.slice(7);
   try {
     const payload = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
     (req as Request & { user: JwtPayload }).user = payload;

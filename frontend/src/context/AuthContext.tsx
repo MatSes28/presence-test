@@ -32,18 +32,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const { user: u, token: t } = JSON.parse(raw);
-        if (u && t) {
-          setUserState(u);
-          setTokenState(t);
+    (async () => {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const { user: u, token: t } = JSON.parse(raw);
+          if (u && t) {
+            setUserState(u);
+            setTokenState(t);
+          }
         }
+        const res = await fetch('/api/auth/me', { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.user) {
+            setUserState(data.user);
+            setTokenState('cookie');
+          }
+        }
+      } catch {
+        localStorage.removeItem(STORAGE_KEY);
       }
-    } catch {
-      localStorage.removeItem(STORAGE_KEY);
-    }
+    })();
   }, []);
 
   useEffect(() => {
@@ -56,6 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
+      credentials: 'include',
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -63,12 +74,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     const data = await res.json();
     setUserState(data.user);
-    setTokenState(data.token);
+    setTokenState(data.token || 'cookie');
   }, []);
 
-  const logout = useCallback(() => {
-    setUserState(null);
-    setTokenState(null);
+  const logout = useCallback(async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } finally {
+      setUserState(null);
+      setTokenState(null);
+    }
   }, []);
 
   const value: AuthContextValue = {

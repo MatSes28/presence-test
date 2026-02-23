@@ -5,8 +5,17 @@ import { z } from 'zod';
 import { pool } from '../db/pool.js';
 import { env } from '../config/env.js';
 import type { UserRole } from '../types/index.js';
+import { authMiddleware } from '../middleware/auth.js';
+import type { AuthRequest } from '../middleware/auth.js';
 
 const router = Router();
+
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax' as const,
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+};
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -46,6 +55,7 @@ router.post('/login', async (req, res) => {
     env.JWT_SECRET,
     { expiresIn: env.JWT_EXPIRES_IN } as jwt.SignOptions
   );
+  res.cookie(env.SESSION_COOKIE_NAME, token, COOKIE_OPTIONS);
   res.json({
     token,
     user: {
@@ -78,6 +88,7 @@ router.post('/register', async (req, res) => {
       env.JWT_SECRET,
       { expiresIn: env.JWT_EXPIRES_IN } as jwt.SignOptions
     );
+    res.cookie(env.SESSION_COOKIE_NAME, token, COOKIE_OPTIONS);
     res.status(201).json({
       token,
       user: { id: user.id, email: user.email, role: user.role, full_name: user.full_name },
@@ -89,6 +100,38 @@ router.post('/register', async (req, res) => {
     }
     throw e;
   }
+});
+
+/** Get current user from session cookie or Bearer token. */
+router.get('/me', authMiddleware, async (req, res) => {
+  const { user } = req as AuthRequest;
+  const r = await pool.query(
+    'SELECT id, email, role, full_name FROM users WHERE id = $1',
+    [user.userId]
+  );
+  if (r.rows.length === 0) {
+    res.status(401).json({ error: 'User not found' });
+    return;
+  }
+  const row = r.rows[0];
+  res.json({
+    user: {
+      id: row.id,
+      email: row.email,
+      role: row.role,
+      full_name: row.full_name,
+    },
+  });
+});
+
+/** Clear session cookie. */
+router.post('/logout', (_req, res) => {
+  res.clearCookie(env.SESSION_COOKIE_NAME, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+  });
+  res.json({ ok: true });
 });
 
 export default router;

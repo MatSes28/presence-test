@@ -101,6 +101,10 @@ POST `http://<server>/api/iot/attendance` with JSON:
    | `JWT_SECRET` | Yes | Strong secret for session tokens. |
    | `NODE_ENV` | No | Set to `production`. |
    | `PORT` | No | Railway sets this automatically. |
+   | `AUTO_SESSION_CRON` | No | Cron expression for auto-creating sessions (default: `0 6 * * *` = 6 AM daily). Set empty to disable. |
+   | `RESEND_API_KEY` | No | Resend API key for guardian email notifications. If unset, notifications are logged only. |
+   | `EMAIL_FROM` | No | From address for emails (e.g. `notifications@yourdomain.com`). Required when using Resend. |
+   | `SESSION_COOKIE_NAME` | No | HTTP-only session cookie name (default: `clirdec_session`). |
 
 6. Build and start:
 

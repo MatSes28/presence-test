@@ -57,8 +57,8 @@ These can be added as needed for guardian notifications, lab usage, and device m
 
 ## Optional / Future
 
-- Session-based auth with HTTP-only cookies
+- ~~Session-based auth with HTTP-only cookies~~ **Done:** JWT in HTTP-only cookie (`clirdec_session`), cookie or Bearer accepted; `GET /api/auth/me`, `POST /api/auth/logout`.
 - Shadcn/ui component library (Tailwind already in use)
 - Drizzle ORM and extra tables (Classrooms, Subjects, Enrollments, Computers, IoT device registry)
-- Automatic session creation on a schedule (cron calling `/api/sessions/auto-create`)
-- Real email sending (Resend/SendGrid) using existing `email_notifications` and `notifyGuardian`
+- ~~Automatic session creation on a schedule (cron calling `/api/sessions/auto-create`)~~ **Done:** `node-cron` runs `AUTO_SESSION_CRON` (default `0 6 * * *`); set to empty to disable.
+- ~~Real email sending (Resend/SendGrid)~~ **Done:** Resend in `notifyGuardian()` when `RESEND_API_KEY` and `EMAIL_FROM` are set.

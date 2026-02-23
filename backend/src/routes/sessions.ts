@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { pool } from '../db/pool.js';
 import { authMiddleware, requireRoles } from '../middleware/auth.js';
 import type { AuthRequest } from '../middleware/auth.js';
+import { autoCreateSessionsForToday } from '../services/sessionService.js';
 
 const router = Router();
 router.use(authMiddleware);
@@ -118,29 +119,8 @@ router.post('/end', requireRoles('admin', 'faculty'), async (req, res) => {
 
 /** Create sessions for today based on schedules (day_of_week). Admin only. Idempotent: skips if session already exists for that schedule today. */
 router.post('/auto-create', requireRoles('admin'), async (_req, res) => {
-  const now = new Date();
-  const dayOfWeek = now.getDay();
-  const todayStart = new Date(now);
-  todayStart.setHours(0, 0, 0, 0);
-  const todayStartIso = todayStart.toISOString();
-  const schedules = await pool.query(
-    'SELECT id FROM schedules WHERE day_of_week = $1',
-    [dayOfWeek]
-  );
-  const created: string[] = [];
-  for (const row of schedules.rows) {
-    const existing = await pool.query(
-      `SELECT 1 FROM class_sessions WHERE schedule_id = $1 AND started_at >= $2 AND status = 'active'`,
-      [row.id, todayStartIso]
-    );
-    if (existing.rows.length > 0) continue;
-    const insert = await pool.query(
-      `INSERT INTO class_sessions (schedule_id, status) VALUES ($1, 'active') RETURNING id`,
-      [row.id]
-    );
-    created.push(insert.rows[0].id);
-  }
-  res.json({ created: created.length, sessionIds: created });
+  const result = await autoCreateSessionsForToday();
+  res.json(result);
 });
 
 export default router;

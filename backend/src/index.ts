@@ -9,7 +9,9 @@ import { createServer } from 'http';
 import { env } from './config/env.js';
 import { attachWebSocket } from './websocket/index.js';
 import { attachIotWebSocket } from './websocket/iot.js';
+import cron from 'node-cron';
 import { ingestAttendance } from './services/attendanceValidation.js';
+import { autoCreateSessionsForToday } from './services/sessionService.js';
 import authRoutes from './routes/auth.js';
 import iotRoutes from './routes/iot.js';
 import sessionRoutes from './routes/sessions.js';
@@ -18,6 +20,7 @@ import scheduleRoutes from './routes/schedules.js';
 import userRoutes from './routes/users.js';
 import discrepancyRoutes from './routes/discrepancy.js';
 import behaviorRoutes from './routes/behavior.js';
+import cookieParser from 'cookie-parser';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -26,6 +29,7 @@ const httpServer = createServer(app);
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
+app.use(cookieParser());
 
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -69,6 +73,21 @@ attachIotWebSocket(httpServer, async (payload) => {
     wsBroadcast.broadcastAttendance(result.broadcast);
   }
 });
+
+// Cron: auto-create sessions for today (e.g. 6:00 AM daily). Set AUTO_SESSION_CRON="" to disable.
+if (env.AUTO_SESSION_CRON) {
+  cron.schedule(env.AUTO_SESSION_CRON, async () => {
+    try {
+      const result = await autoCreateSessionsForToday();
+      if (result.created > 0) {
+        console.log(`[cron] Auto-created ${result.created} session(s) for today`);
+      }
+    } catch (err) {
+      console.error('[cron] Auto session create failed:', err);
+    }
+  });
+  console.log(`Auto session cron enabled: ${env.AUTO_SESSION_CRON}`);
+}
 
 httpServer.listen(env.PORT, () => {
   console.log(`CLIRDEC backend listening on port ${env.PORT}`);
