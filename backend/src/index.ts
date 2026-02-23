@@ -16,6 +16,8 @@ import sessionRoutes from './routes/sessions.js';
 import attendanceRoutes from './routes/attendance.js';
 import scheduleRoutes from './routes/schedules.js';
 import userRoutes from './routes/users.js';
+import discrepancyRoutes from './routes/discrepancy.js';
+import behaviorRoutes from './routes/behavior.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -46,6 +48,8 @@ app.use('/api/sessions', sessionRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/schedules', scheduleRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/discrepancy-flags', discrepancyRoutes);
+app.use('/api/behavior', behaviorRoutes);
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'clirdec-presence' }));
 

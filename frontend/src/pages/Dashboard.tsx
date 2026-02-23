@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { useWebSocket, type AttendanceEvent } from '../hooks/useWebSocket';
-import { queryKeys, fetchSessions } from '../api/queries';
+import { queryKeys, fetchSessions, fetchAtRisk } from '../api/queries';
 import styles from './Dashboard.module.css';
 
 interface SessionRow {
@@ -23,6 +23,10 @@ export default function Dashboard() {
   const { data: sessions = [], isLoading: loading } = useQuery({
     queryKey: queryKeys.sessions,
     queryFn: fetchSessions,
+  });
+  const { data: atRiskData } = useQuery({
+    queryKey: queryKeys.atRisk,
+    queryFn: fetchAtRisk,
   });
 
   const handleAttendance = useCallback((e: AttendanceEvent) => {
@@ -72,7 +76,7 @@ export default function Dashboard() {
           <ul className={styles.liveList}>
             {liveEvents.map((e, i) => (
               <li key={`${e.userId}-${e.recorded_at}-${i}`} className={styles.liveItem}>
-                <span className={styles.badge}>Present</span>
+                <span className={e.attendanceStatus === 'late' ? styles.badgeLate : styles.badge}>{(e.attendanceStatus === 'late' ? 'Late' : 'Present')}</span>
                 <strong>{e.full_name}</strong>
                 <span className={styles.time}>
                   {new Date(e.recorded_at).toLocaleTimeString()}
@@ -82,6 +86,22 @@ export default function Dashboard() {
           </ul>
         )}
       </section>
+
+      {atRiskData && atRiskData.atRisk.length > 0 && (
+        <section className={styles.section}>
+          <h2>At risk (attendance &lt; {atRiskData.config.criticalBelow}%)</h2>
+          <p className={styles.muted}>Students with critical attendance level.</p>
+          <ul className={styles.sessionList}>
+            {atRiskData.atRisk.map((s) => (
+              <li key={s.userId} className={styles.riskItem}>
+                <strong>{s.full_name}</strong>
+                <span>{s.email}</span>
+                <span className={styles.riskRate}>{s.attendanceRate.toFixed(1)}%</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className={styles.section}>
         <h2>Recent sessions</h2>

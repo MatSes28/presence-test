@@ -8,4 +8,6 @@ export const env = {
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN ?? '7d',
   VALIDATION_WINDOW_MS: parseInt(process.env.VALIDATION_WINDOW_MS ?? '7000', 10), // 7s RFID+proximity correlation (spec)
   PROXIMITY_MAX_CM: parseInt(process.env.PROXIMITY_MAX_CM ?? '80', 10),
+  GRACE_PERIOD_MINUTES: parseInt(process.env.GRACE_PERIOD_MINUTES ?? '10', 10),
+  LATE_CUTOFF_PCT: parseInt(process.env.LATE_CUTOFF_PCT ?? '60', 10),
 };

@@ -11,8 +11,11 @@ async function migrate() {
   await pool.query(sql);
   const guardianPath = path.join(__dirname, 'schema-guardian-email.sql');
   if (fs.existsSync(guardianPath)) {
-    const guardianSql = fs.readFileSync(guardianPath, 'utf-8');
-    await pool.query(guardianSql);
+    await pool.query(fs.readFileSync(guardianPath, 'utf-8'));
+  }
+  const v2Path = path.join(__dirname, 'schema-v2.sql');
+  if (fs.existsSync(v2Path)) {
+    await pool.query(fs.readFileSync(v2Path, 'utf-8'));
   }
   console.log('Migration completed.');
   process.exit(0);

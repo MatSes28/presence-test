@@ -5,6 +5,7 @@ export interface AttendanceEvent {
   userId: string;
   full_name: string;
   recorded_at: string;
+  attendanceStatus?: 'present' | 'late';
 }
 
 export function useWebSocket(onAttendance?: (e: AttendanceEvent) => void) {

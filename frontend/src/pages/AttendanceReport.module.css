@@ -51,6 +51,28 @@
   text-transform: capitalize;
 }
 
+.stats {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.stats strong {
+  color: var(--text);
+}
+
+.statusPresent {
+  color: var(--success);
+  font-weight: 500;
+}
+
+.statusLate {
+  color: var(--warning);
+  font-weight: 500;
+}
+
 .section {
   background: var(--surface);
   border: 1px solid var(--border);

@@ -20,6 +20,13 @@ interface AttendanceRow {
   recorded_at: string;
   proximity_valid: boolean;
   distance_cm: number | null;
+  attendance_status?: string;
+}
+
+interface SessionStats {
+  presentCount: number;
+  lateCount: number;
+  totalRecorded: number;
 }
 
 interface Report {
@@ -30,15 +37,18 @@ interface Report {
 export default function AttendanceReport() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const [report, setReport] = useState<Report | null>(null);
+  const [stats, setStats] = useState<SessionStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!sessionId) return;
-    api
-      .get<Report>(`/api/attendance/reports/session/${sessionId}`)
-      .then(setReport)
-      .catch(() => setReport(null))
-      .finally(() => setLoading(false));
+    Promise.all([
+      api.get<Report>(`/api/attendance/reports/session/${sessionId}`),
+      api.get<SessionStats>(`/api/attendance/session/${sessionId}/stats`).catch(() => null),
+    ]).then(([r, s]) => {
+      setReport(r);
+      setStats(s ?? null);
+    }).finally(() => setLoading(false));
   }, [sessionId]);
 
   if (loading) return <p className={styles.muted}>Loading…</p>;
@@ -88,6 +98,13 @@ export default function AttendanceReport() {
           Started: {new Date(session.started_at).toLocaleString()}
           {session.ended_at && ` · Ended: ${new Date(session.ended_at).toLocaleString()}`}
         </div>
+        {stats && (
+          <div className={styles.stats}>
+            <span>Present: <strong>{stats.presentCount}</strong></span>
+            <span>Late: <strong>{stats.lateCount}</strong></span>
+            <span>Total recorded: <strong>{stats.totalRecorded}</strong></span>
+          </div>
+        )}
       </div>
 
       <section className={styles.section}>
@@ -106,6 +123,7 @@ export default function AttendanceReport() {
                 <tr>
                   <th>Name</th>
                   <th>Email</th>
+                  <th>Status</th>
                   <th>Time</th>
                   <th>Distance (cm)</th>
                 </tr>
@@ -115,6 +133,7 @@ export default function AttendanceReport() {
                   <tr key={a.id}>
                     <td>{a.full_name}</td>
                     <td>{a.email}</td>
+                    <td><span className={a.attendance_status === 'late' ? styles.statusLate : styles.statusPresent}>{a.attendance_status === 'late' ? 'Late' : 'Present'}</span></td>
                     <td>{new Date(a.recorded_at).toLocaleTimeString()}</td>
                     <td>{a.distance_cm != null ? a.distance_cm : '—'}</td>
                   </tr>

@@ -16,6 +16,27 @@ async function canAccessSession(req: AuthRequest, sessionId: string): Promise<bo
   return row.rows.length > 0;
 }
 
+router.get('/session/:sessionId/stats', requireRoles('admin', 'faculty'), async (req, res) => {
+  const { sessionId } = req.params;
+  if (!(await canAccessSession(req as AuthRequest, sessionId))) {
+    return res.status(403).json({ error: 'Access denied to this session' });
+  }
+  const counts = await pool.query(
+    `SELECT
+       COUNT(*) FILTER (WHERE COALESCE(attendance_status, 'present') = 'present') AS present_count,
+       COUNT(*) FILTER (WHERE attendance_status = 'late') AS late_count,
+       COUNT(*) AS total_recorded
+     FROM attendance_events WHERE session_id = $1`,
+    [sessionId]
+  );
+  const row = counts.rows[0];
+  res.json({
+    presentCount: parseInt(String(row?.present_count ?? 0), 10),
+    lateCount: parseInt(String(row?.late_count ?? 0), 10),
+    totalRecorded: parseInt(String(row?.total_recorded ?? 0), 10),
+  });
+});
+
 router.get('/by-session/:sessionId', requireRoles('admin', 'faculty'), async (req, res) => {
   const { sessionId } = req.params;
   if (!(await canAccessSession(req as AuthRequest, sessionId))) {

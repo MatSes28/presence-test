@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS attendance_events (
   distance_cm INTEGER,
   recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   status VARCHAR(20) NOT NULL DEFAULT 'recorded' CHECK (status IN ('recorded', 'rejected', 'duplicate')),
+  attendance_status VARCHAR(20) DEFAULT 'present' CHECK (attendance_status IN ('present', 'late')),
   UNIQUE(session_id, user_id)
 );
 
