@@ -1,8 +1,10 @@
 import crypto from 'crypto';
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { pool } from '../db/pool.js';
+import { env } from '../config/env.js';
 import { authMiddleware, requireRoles } from '../middleware/auth.js';
 import type { AuthRequest } from '../middleware/auth.js';
 import { audit, getClientIp } from '../services/auditService.js';
@@ -127,6 +129,28 @@ router.post('/rfid', requireRoles('admin', 'faculty'), async (req, res) => {
     [parsed.data.user_id]
   );
   res.status(201).json(row.rows[0]);
+});
+
+/** Generate a time-limited link for a student to view their own attendance (admin only). */
+router.post('/:id/attendance-link', requireRoles('admin'), async (req, res) => {
+  const userId = req.params.id;
+  const r = await pool.query('SELECT id, full_name, role FROM users WHERE id = $1', [userId]);
+  if (r.rows.length === 0) {
+    res.status(404).json({ error: 'User not found' });
+    return;
+  }
+  if (r.rows[0].role !== 'student') {
+    res.status(400).json({ error: 'Attendance link is for students only' });
+    return;
+  }
+  const token = jwt.sign(
+    { userId, purpose: 'student_attendance_view' },
+    env.JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+  const baseUrl = (req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http') + '://' + (req.headers['x-forwarded-host'] ?? req.headers.host ?? 'localhost');
+  const url = `${baseUrl}/my-attendance?token=${encodeURIComponent(token)}`;
+  res.json({ url, token, expiresIn: '7d' });
 });
 
 router.delete('/:id', requireRoles('admin'), async (req, res) => {

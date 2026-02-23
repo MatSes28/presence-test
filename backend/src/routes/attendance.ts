@@ -1,10 +1,47 @@
 import { Router } from 'express';
+import jwt from 'jsonwebtoken';
 import { pool } from '../db/pool.js';
+import { env } from '../config/env.js';
 import { authMiddleware, requireRoles } from '../middleware/auth.js';
 import type { AuthRequest } from '../middleware/auth.js';
 import { audit, getClientIp } from '../services/auditService.js';
 
 const router = Router();
+
+/** Student "my attendance" view: token-based, no auth. Token = JWT with userId and purpose 'student_attendance_view'. */
+router.get('/me', async (req, res) => {
+  const token = (req.query.token as string)?.trim();
+  if (!token) {
+    res.status(401).json({ error: 'Missing token' });
+    return;
+  }
+  try {
+    const payload = jwt.verify(token, env.JWT_SECRET) as { userId?: string; purpose?: string };
+    if (payload?.purpose !== 'student_attendance_view' || !payload?.userId) {
+      res.status(401).json({ error: 'Invalid token' });
+      return;
+    }
+    const result = await pool.query(
+      `SELECT ae.id, ae.recorded_at, ae.attendance_status, cs.started_at AS session_start, s.subject, s.room
+       FROM attendance_events ae
+       JOIN class_sessions cs ON cs.id = ae.session_id
+       JOIN schedules s ON s.id = cs.schedule_id
+       WHERE ae.user_id = $1
+       ORDER BY ae.recorded_at DESC
+       LIMIT 200`,
+      [payload.userId]
+    );
+    const user = await pool.query('SELECT full_name, email FROM users WHERE id = $1', [payload.userId]);
+    res.json({
+      full_name: user.rows[0]?.full_name,
+      email: user.rows[0]?.email,
+      attendance: result.rows,
+    });
+  } catch {
+    res.status(401).json({ error: 'Invalid or expired token' });
+  }
+});
+
 router.use(authMiddleware);
 
 async function canAccessSession(req: AuthRequest, sessionId: string): Promise<boolean> {

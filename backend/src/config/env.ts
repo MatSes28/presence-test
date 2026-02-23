@@ -12,6 +12,8 @@ export const env = {
   LATE_CUTOFF_PCT: parseInt(process.env.LATE_CUTOFF_PCT ?? '60', 10),
   /** Cron expression for auto session creation (default: 6:00 AM daily). Set to empty to disable. */
   AUTO_SESSION_CRON: process.env.AUTO_SESSION_CRON ?? '0 6 * * *',
+  /** Number of days ahead to create sessions in cron (1 = today only). Max 31. */
+  SESSION_CREATE_DAYS: Math.min(31, Math.max(1, parseInt(process.env.SESSION_CREATE_DAYS ?? '1', 10))),
   /** Resend API key for guardian emails. If unset, notifications are logged only. */
   RESEND_API_KEY: process.env.RESEND_API_KEY ?? '',
   /** From address for transactional email (e.g. notifications@yourdomain.com). Required when RESEND_API_KEY is set. */
@@ -26,4 +28,12 @@ export const env = {
   IOT_REQUIRE_DEVICE_AUTH: /^(1|true|yes)$/i.test(process.env.IOT_REQUIRE_DEVICE_AUTH ?? ''),
   /** Delete audit_log entries older than this many days (0 = disable). Default 365. */
   AUDIT_RETENTION_DAYS: Math.max(0, parseInt(process.env.AUDIT_RETENTION_DAYS ?? '365', 10)),
+  /** OIDC SSO: issuer URL (e.g. https://idp.example.com/realms/main). If set, SSO routes are enabled. */
+  OIDC_ISSUER: process.env.OIDC_ISSUER ?? '',
+  OIDC_CLIENT_ID: process.env.OIDC_CLIENT_ID ?? '',
+  OIDC_CLIENT_SECRET: process.env.OIDC_CLIENT_SECRET ?? '',
+  OIDC_REDIRECT_URI: process.env.OIDC_REDIRECT_URI ?? '',
+  OIDC_SCOPES: process.env.OIDC_SCOPES ?? 'openid profile email',
+  /** If 1/true, create user on first SSO login when email not found (default: only existing users). */
+  OIDC_CREATE_USER: /^(1|true|yes)$/i.test(process.env.OIDC_CREATE_USER ?? ''),
 };

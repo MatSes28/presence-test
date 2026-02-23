@@ -47,8 +47,13 @@ export default function Users() {
   const [importCsv, setImportCsv] = useState('');
   const [importResult, setImportResult] = useState<{ created: number; skipped: number; errors: { row: number; email?: string; message: string }[] } | null>(null);
   const [importing, setImporting] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; email: string; full_name: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [attendanceLink, setAttendanceLink] = useState<{ url: string; full_name: string } | null>(null);
+  const [loadingLink, setLoadingLink] = useState(false);
   const isAdmin = user?.role === 'admin';
   const needsPassword = createForm.role === 'faculty' || createForm.role === 'admin';
+  const currentUserId = user?.id;
 
   useEffect(() => {
     api
@@ -144,6 +149,35 @@ export default function Users() {
       setImportResult({ created: 0, skipped: 0, errors: [{ row: 0, message: err instanceof Error ? err.message : 'Import failed' }] });
     } finally {
       setImporting(false);
+    }
+  }
+
+  async function getAttendanceLink(studentId: string, fullName: string) {
+    setLoadingLink(true);
+    try {
+      const body = await api.post<{ url: string }>(`/api/users/${studentId}/attendance-link`, {});
+      setAttendanceLink({ url: body.url, full_name: fullName });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to get link');
+    } finally {
+      setLoadingLink(false);
+    }
+  }
+
+  async function confirmDeleteUser() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/api/users/${deleteTarget.id}`);
+      setDeleteTarget(null);
+      const list = await api.get<StudentRow[]>('/api/users/students');
+      setStudents(list);
+      const users = await api.get<{ id: string; email: string; full_name: string; role: string }[]>('/api/users');
+      setAllUsers(users);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete user');
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -371,6 +405,7 @@ export default function Users() {
                 <th>Email</th>
                 <th>RFID UID</th>
                 <th>Registered</th>
+                {isAdmin && <th>Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -386,6 +421,13 @@ export default function Users() {
                     )}
                   </td>
                   <td>{new Date(s.created_at).toLocaleDateString()}</td>
+                  {isAdmin && (
+                    <td>
+                      <Button type="button" variant="secondary" size="sm" disabled={loadingLink} onClick={() => getAttendanceLink(s.id, s.full_name)}>
+                        Get link
+                      </Button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -393,6 +435,17 @@ export default function Users() {
           </div>
         </CardContent>
       </Card>
+
+      {attendanceLink && (
+        <Modal open={!!attendanceLink} onClose={() => setAttendanceLink(null)} title="Attendance link">
+          <p className="text-sm text-[var(--text-secondary)] mb-2">Share this link with <strong>{attendanceLink.full_name}</strong>. It expires in 7 days.</p>
+          <input readOnly className="w-full rounded border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2 text-sm text-[var(--text)] mb-4" value={attendanceLink.url} />
+          <div className="flex gap-2 justify-end">
+            <Button type="button" variant="secondary" onClick={() => { navigator.clipboard?.writeText(attendanceLink.url); setAttendanceLink(null); }}>Copy and close</Button>
+            <Button type="button" onClick={() => setAttendanceLink(null)}>Close</Button>
+          </div>
+        </Modal>
+      )}
 
       {isAdmin && allUsers.length > 0 && (
         <Card>
@@ -408,6 +461,7 @@ export default function Users() {
                   <th>Name</th>
                   <th>Email</th>
                   <th>Role</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -416,6 +470,18 @@ export default function Users() {
                     <td>{u.full_name}</td>
                     <td>{u.email}</td>
                     <td><span className={styles.roleBadge}>{u.role}</span></td>
+                    <td>
+                      {u.id !== currentUserId && (
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => setDeleteTarget({ id: u.id, email: u.email, full_name: u.full_name })}
+                        >
+                          Delete
+                        </Button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -423,6 +489,18 @@ export default function Users() {
           </div>
           </CardContent>
         </Card>
+      )}
+
+      {deleteTarget && (
+        <Modal open={!!deleteTarget} onClose={() => !deleting && setDeleteTarget(null)} title="Delete user">
+          <p className="text-[var(--text-secondary)] mb-4">
+            Remove <strong>{deleteTarget.full_name}</strong> ({deleteTarget.email})? This will delete their attendance records and cannot be undone.
+          </p>
+          <div className="flex gap-2 justify-end">
+            <Button type="button" variant="secondary" onClick={() => setDeleteTarget(null)} disabled={deleting}>Cancel</Button>
+            <Button type="button" variant="destructive" onClick={confirmDeleteUser} disabled={deleting}>{deleting ? 'Deleting…' : 'Delete user'}</Button>
+          </div>
+        </Modal>
       )}
     </div>
   );

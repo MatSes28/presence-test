@@ -3,7 +3,8 @@ import { z } from 'zod';
 import { pool } from '../db/pool.js';
 import { authMiddleware, requireRoles } from '../middleware/auth.js';
 import type { AuthRequest } from '../middleware/auth.js';
-import { autoCreateSessionsForToday } from '../services/sessionService.js';
+import { autoCreateSessionsForNextDays } from '../services/sessionService.js';
+import { env } from '../config/env.js';
 import { audit, getClientIp } from '../services/auditService.js';
 
 const router = Router();
@@ -136,9 +137,12 @@ router.post('/end', requireRoles('admin', 'faculty'), async (req, res) => {
   res.json(updated.rows[0]);
 });
 
-/** Create sessions for today based on schedules (day_of_week). Admin only. Idempotent: skips if session already exists for that schedule today. */
-router.post('/auto-create', requireRoles('admin'), async (_req, res) => {
-  const result = await autoCreateSessionsForToday();
+const autoCreateSchema = z.object({ days: z.number().int().min(1).max(31).optional() });
+/** Create sessions for next N days (default: env SESSION_CREATE_DAYS or 1). Admin only. Idempotent. */
+router.post('/auto-create', requireRoles('admin'), async (req, res) => {
+  const parsed = autoCreateSchema.safeParse(req.body ?? {});
+  const days = parsed.success && parsed.data.days != null ? parsed.data.days : env.SESSION_CREATE_DAYS;
+  const result = await autoCreateSessionsForNextDays(days);
   res.json(result);
 });
 

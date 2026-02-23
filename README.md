@@ -2,7 +2,7 @@
 
 Attendance monitoring and classroom engagement system for **Central Luzon State University** — Department of Information Technology (DIT), College of Engineering (BSIT). Combines RFID identification with proximity (ultrasonic) verification to reduce ghost attendance and support real-time monitoring.
 
-See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for system architecture and spec alignment. For deployment and operations at scale, see **[docs/RUNBOOK.md](docs/RUNBOOK.md)** and **[docs/PRODUCTION_READINESS.md](docs/PRODUCTION_READINESS.md)**.
+See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for system architecture and spec alignment. For deployment and operations at scale, see **[docs/RUNBOOK.md](docs/RUNBOOK.md)** and **[docs/PRODUCTION_READINESS.md](docs/PRODUCTION_READINESS.md)**. For production secrets, see **[docs/SECRETS.md](docs/SECRETS.md)**.
 
 ## Features
 
@@ -113,6 +113,8 @@ ESP32-S3 units connect to the same network (WiFi) as the server and send attenda
    | `REQUIRE_HTTPS` | No | Set to `1` or `true` in production to reject non-HTTPS requests (behind proxy). |
    | `IOT_REQUIRE_DEVICE_AUTH` | No | Set to `1` or `true` to require device_id + API key on `/api/iot/attendance`. |
    | `AUDIT_RETENTION_DAYS` | No | Purge audit_log older than this (default: 365). Set to `0` to disable. |
+   | `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_REDIRECT_URI` | No | SSO (see [docs/SSO_OIDC.md](docs/SSO_OIDC.md)). |
+   | `SESSION_CREATE_DAYS` | No | Days ahead for cron auto-create (default: 1). Max 31. |
 
 6. Build and start:
 

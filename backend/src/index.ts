@@ -11,7 +11,7 @@ import { attachWebSocket } from './websocket/index.js';
 import { attachIotWebSocket } from './websocket/iot.js';
 import cron from 'node-cron';
 import { ingestAttendance } from './services/attendanceValidation.js';
-import { autoCreateSessionsForToday } from './services/sessionService.js';
+import { autoCreateSessionsForNextDays } from './services/sessionService.js';
 import { purgeOldAuditLog } from './services/retentionService.js';
 import { runAdditiveMigrations } from './db/runAdditiveMigrations.js';
 import authRoutes from './routes/auth.js';
@@ -113,19 +113,19 @@ attachIotWebSocket(httpServer, async (payload) => {
   }
 });
 
-// Cron: auto-create sessions for today (e.g. 6:00 AM daily). Set AUTO_SESSION_CRON="" to disable.
+// Cron: auto-create sessions (e.g. 6:00 AM daily). SESSION_CREATE_DAYS = how many days ahead (default 1 = today).
 if (env.AUTO_SESSION_CRON) {
   cron.schedule(env.AUTO_SESSION_CRON, async () => {
     try {
-      const result = await autoCreateSessionsForToday();
+      const result = await autoCreateSessionsForNextDays(env.SESSION_CREATE_DAYS);
       if (result.created > 0) {
-        console.log(`[cron] Auto-created ${result.created} session(s) for today`);
+        console.log(`[cron] Auto-created ${result.created} session(s) for next ${env.SESSION_CREATE_DAYS} day(s)`);
       }
     } catch (err) {
       console.error('[cron] Auto session create failed:', err);
     }
   });
-  console.log(`Auto session cron enabled: ${env.AUTO_SESSION_CRON}`);
+  console.log(`Auto session cron enabled: ${env.AUTO_SESSION_CRON} (create ${env.SESSION_CREATE_DAYS} day(s) ahead)`);
 }
 
 // Cron: purge old audit log (daily at 3 AM). AUDIT_RETENTION_DAYS=0 to disable.

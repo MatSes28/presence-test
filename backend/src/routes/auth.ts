@@ -8,8 +8,12 @@ import type { UserRole } from '../types/index.js';
 import { authMiddleware } from '../middleware/auth.js';
 import type { AuthRequest } from '../middleware/auth.js';
 import { audit, getClientIp } from '../services/auditService.js';
+import * as oidcService from '../services/oidcService.js';
 
 const router = Router();
+
+const OIDC_STATE_COOKIE = 'oidc_state';
+const OIDC_STATE_MAX_AGE = 10 * 60 * 1000; // 10 min
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -130,6 +134,65 @@ router.get('/me', authMiddleware, async (req, res) => {
       full_name: row.full_name,
     },
   });
+});
+
+/** Public: whether SSO is configured (for showing "Sign in with SSO" on login page). */
+router.get('/config', (_req, res) => {
+  res.json({
+    ssoEnabled: !!(env.OIDC_ISSUER && env.OIDC_CLIENT_ID && env.OIDC_REDIRECT_URI),
+  });
+});
+
+/** SSO: redirect to IdP login. Requires OIDC_ISSUER, OIDC_CLIENT_ID, OIDC_REDIRECT_URI. */
+router.get('/oidc', async (_req, res) => {
+  if (!env.OIDC_ISSUER || !env.OIDC_CLIENT_ID || !env.OIDC_REDIRECT_URI) {
+    res.status(501).json({ error: 'SSO not configured' });
+    return;
+  }
+  try {
+    const { url, state } = await oidcService.getAuthorizationUrl();
+    res.cookie(OIDC_STATE_COOKIE, state, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: OIDC_STATE_MAX_AGE,
+    });
+    res.redirect(302, url);
+  } catch (e) {
+    console.error('[oidc] Redirect failed:', e);
+    res.status(502).json({ error: 'SSO redirect failed' });
+  }
+});
+
+/** SSO: callback from IdP. Exchange code, find/create user, set session, redirect to /. */
+router.get('/oidc/callback', async (req, res) => {
+  if (!env.OIDC_ISSUER) {
+    res.redirect(302, '/login?error=sso_not_configured');
+    return;
+  }
+  const state = req.query.state as string;
+  const code = req.query.code as string;
+  const savedState = req.cookies?.[OIDC_STATE_COOKIE];
+  res.clearCookie(OIDC_STATE_COOKIE, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
+  if (!state || state !== savedState || !code) {
+    res.redirect(302, '/login?error=invalid_callback');
+    return;
+  }
+  const user = await oidcService.exchangeCodeForUser(code);
+  if (!user) {
+    res.redirect(302, '/login?error=sso_no_user');
+    return;
+  }
+  const token = oidcService.signToken(user);
+  res.cookie(env.SESSION_COOKIE_NAME, token, COOKIE_OPTIONS);
+  await audit({
+    actorId: user.id,
+    actorEmail: user.email,
+    action: 'auth_login',
+    details: { role: user.role, method: 'oidc' },
+    ipAddress: getClientIp(req),
+  });
+  res.redirect(302, '/');
 });
 
 /** Clear session cookie. Optionally audit if user was logged in (cookie present). */

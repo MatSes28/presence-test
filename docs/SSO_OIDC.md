@@ -7,7 +7,10 @@ For institution-wide deployment, many universities use **Single Sign-On (SSO)** 
 ## Current state
 
 - **Local login:** `POST /api/auth/login` with email + password; JWT and HTTP-only cookie.
-- **SSO:** Not implemented in-code. The app does not yet have OIDC callback routes or IdP discovery.
+- **SSO:** Implemented. When `OIDC_ISSUER`, `OIDC_CLIENT_ID`, and `OIDC_REDIRECT_URI` are set:
+  - `GET /api/auth/config` returns `{ ssoEnabled: true }` (for login page).
+  - `GET /api/auth/oidc` redirects to IdP; `GET /api/auth/oidc/callback` exchanges code, finds or creates user (`OIDC_CREATE_USER=1` to allow auto-create), sets session cookie, redirects to `/`.
+  - Login page shows "Sign in with SSO" when SSO is enabled.
 
 ---
 
