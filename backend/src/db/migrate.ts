@@ -17,6 +17,10 @@ async function migrate() {
   if (fs.existsSync(v2Path)) {
     await pool.query(fs.readFileSync(v2Path, 'utf-8'));
   }
+  const iotHealthPath = path.join(__dirname, 'schema-iot-health.sql');
+  if (fs.existsSync(iotHealthPath)) {
+    await pool.query(fs.readFileSync(iotHealthPath, 'utf-8'));
+  }
   console.log('Migration completed.');
   process.exit(0);
 }

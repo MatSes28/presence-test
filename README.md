@@ -82,6 +82,7 @@ POST `http://<server>/api/iot/attendance` with JSON:
 
 - If `session_id` is omitted, the current **active** session is used (one active session at a time).
 - Attendance is accepted only when the card is registered, proximity is within the configured range, and the session is active. Duplicate scans for the same user in the same session are ignored.
+- **IoT device registry:** Admins can register devices at **IoT devices** in the app. When `device_id` is sent with attendance, the device’s `last_seen_at` is updated for health monitoring.
 
 ## Deployment on Railway
 

@@ -50,7 +50,7 @@ These can be added as needed for guardian notifications, lab usage, and device m
 - Faculty: view their sessions, start/end, view attendance reports
 - CSV export for attendance reports
 - **IoT WebSocket** — `/iot` for devices (heartbeat, attendance); REST `/api/iot/attendance` still supported
-- **Guardian contact** — `guardian_email` on users (students); `email_notifications` table; `notifyGuardian()` logs (email send is stub)
+- **Guardian contact** — `guardian_email` on users (students); `email_notifications` table; real email via Resend when `RESEND_API_KEY` and `EMAIL_FROM` are set
 - **Auto session creation** — `POST /api/sessions/auto-create` (admin) creates today’s sessions from schedules
 
 ---
@@ -59,6 +59,7 @@ These can be added as needed for guardian notifications, lab usage, and device m
 
 - ~~Session-based auth with HTTP-only cookies~~ **Done:** JWT in HTTP-only cookie (`clirdec_session`), cookie or Bearer accepted; `GET /api/auth/me`, `POST /api/auth/logout`.
 - Shadcn/ui component library (Tailwind already in use)
-- Drizzle ORM and extra tables (Classrooms, Subjects, Enrollments, Computers, IoT device registry)
+- Drizzle ORM and extra tables (Classrooms, Subjects, Enrollments, Computers)
+- ~~IoT device registry~~ **Done:** `iot_devices` table; `GET/POST/PATCH/DELETE /api/iot/devices` (admin); `last_seen_at` updated on attendance
 - ~~Automatic session creation on a schedule (cron calling `/api/sessions/auto-create`)~~ **Done:** `node-cron` runs `AUTO_SESSION_CRON` (default `0 6 * * *`); set to empty to disable.
 - ~~Real email sending (Resend/SendGrid)~~ **Done:** Resend in `notifyGuardian()` when `RESEND_API_KEY` and `EMAIL_FROM` are set.

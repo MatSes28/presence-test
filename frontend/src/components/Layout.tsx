@@ -31,6 +31,9 @@ export default function Layout() {
               <NavLink to="/users" className={({ isActive }) => (isActive ? styles.active : '')}>
                 Users
               </NavLink>
+              <NavLink to="/iot-devices" className={({ isActive }) => (isActive ? styles.active : '')}>
+                IoT devices
+              </NavLink>
             </>
           )}
         </nav>

@@ -7,6 +7,7 @@ import Sessions from './pages/Sessions';
 import Schedules from './pages/Schedules';
 import Users from './pages/Users';
 import AttendanceReport from './pages/AttendanceReport';
+import IotDevices from './pages/IotDevices';
 
 function PrivateRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user, token } = useAuth();
@@ -31,6 +32,7 @@ export default function App() {
         <Route path="sessions" element={<Sessions />} />
         <Route path="schedules" element={<PrivateRoute roles={['admin']}><Schedules /></PrivateRoute>} />
         <Route path="users" element={<PrivateRoute roles={['admin']}><Users /></PrivateRoute>} />
+        <Route path="iot-devices" element={<PrivateRoute roles={['admin']}><IotDevices /></PrivateRoute>} />
         <Route path="attendance/:sessionId" element={<AttendanceReport />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import styles from './Login.module.css';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -31,37 +33,41 @@ export default function Login() {
   }
 
   return (
-    <div className={styles.page}>
-      <div className={styles.card}>
-        <h1 className={styles.title}>CLIRDEC:PRESENCE</h1>
-        <p className={styles.subtitle}>
-          Attendance monitoring & classroom engagement — Central Luzon State University · DIT · College of Engineering (BSIT)
-        </p>
-        <form onSubmit={handleSubmit} className={styles.form}>
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoComplete="email"
-            className={styles.input}
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoComplete="current-password"
-            className={styles.input}
-          />
-          {error && <p className={styles.error}>{error}</p>}
-          <button type="submit" disabled={loading} className={styles.button}>
-            {loading ? 'Signing in…' : 'Sign in'}
-          </button>
-        </form>
-      </div>
+    <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-[var(--bg)] to-[var(--surface)]">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="text-xl font-mono tracking-wide text-[var(--accent)] text-center">
+            CLIRDEC:PRESENCE
+          </CardTitle>
+          <CardDescription className="text-center">
+            Attendance monitoring & classroom engagement — Central Luzon State University · DIT · College of Engineering (BSIT)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <Input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+            />
+            <Input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+            />
+            {error && <p className="text-sm text-[var(--error)]">{error}</p>}
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading ? 'Signing in…' : 'Sign in'}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }

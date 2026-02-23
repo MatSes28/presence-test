@@ -188,6 +188,14 @@ export async function ingestAttendance(payload: {
   } catch {
     // notification is best-effort
   }
+  if (payload.device_id) {
+    try {
+      const { touchDeviceLastSeen } = await import('./iotDeviceService.js');
+      await touchDeviceLastSeen(payload.device_id);
+    } catch {
+      // device registry update is best-effort
+    }
+  }
   return {
     success: true,
     eventId: result.eventId,
