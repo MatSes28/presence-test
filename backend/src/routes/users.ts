@@ -44,11 +44,20 @@ router.post('/', requireRoles('admin'), async (req, res) => {
     return;
   }
   const hash = await bcrypt.hash(parsed.data.password, 10);
-  const insert = await pool.query(
-    `INSERT INTO users (email, password_hash, full_name, role) VALUES ($1, $2, $3, $4) RETURNING id, email, role, full_name, created_at`,
-    [parsed.data.email, hash, parsed.data.full_name, parsed.data.role]
-  );
-  res.status(201).json(insert.rows[0]);
+  try {
+    const insert = await pool.query(
+      `INSERT INTO users (email, password_hash, full_name, role) VALUES ($1, $2, $3, $4) RETURNING id, email, role, full_name, created_at`,
+      [parsed.data.email, hash, parsed.data.full_name, parsed.data.role]
+    );
+    res.status(201).json(insert.rows[0]);
+  } catch (e: unknown) {
+    const err = e as { code?: string };
+    if (err?.code === '23505') {
+      res.status(409).json({ error: 'Email already registered' });
+      return;
+    }
+    throw e;
+  }
 });
 
 router.post('/rfid', requireRoles('admin', 'faculty'), async (req, res) => {

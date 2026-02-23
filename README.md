@@ -1,6 +1,8 @@
-# CLIRDEC: Presence-Proximity and RFID-Enabled Smart Entry
+# CLIRDEC:PRESENCE
 
-**Notation of Classroom Engagement** — An attendance monitoring system that combines RFID identification with proximity (ultrasonic) verification to ensure physical presence during check-in.
+Attendance monitoring and classroom engagement system for **Central Luzon State University** — Department of Information Technology (DIT), College of Engineering (BSIT). Combines RFID identification with proximity (ultrasonic) verification to reduce ghost attendance and support real-time monitoring.
+
+See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for system architecture and spec alignment.
 
 ## Features
 
@@ -10,7 +12,7 @@
 - **Session-based recording** — Attendance is recorded only during active class sessions.
 - **Role-based access** — Admin and faculty dashboards; students use cards only.
 - **Real-time updates** — WebSocket feed for live attendance events.
-- **Reports** — Attendance logs and session reports for monitoring and evaluation.
+- **Reports** — Attendance logs, session reports, and **CSV export** for monitoring and evaluation.
 
 ## Tech Stack
 

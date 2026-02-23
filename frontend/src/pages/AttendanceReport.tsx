@@ -46,6 +46,35 @@ export default function AttendanceReport() {
 
   const { session, attendance } = report;
 
+  function exportCsv() {
+    const token = (() => {
+      try {
+        const raw = localStorage.getItem('clirdec_auth');
+        return raw ? JSON.parse(raw).token : null;
+      } catch {
+        return null;
+      }
+    })();
+    if (!token) return;
+    fetch(`/api/attendance/reports/session/${sessionId}/export?format=csv`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => {
+        if (!r.ok) throw new Error('Export failed');
+        return r.text();
+      })
+      .then((text) => {
+        const blob = new Blob([text], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `attendance-${session.subject.replace(/\s+/g, '-')}-${session.room}-${session.id.slice(0, 8)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      })
+      .catch(() => alert('Export failed'));
+  }
+
   return (
     <div className={styles.page}>
       <Link to="/sessions" className={styles.back}>← Sessions</Link>
@@ -62,7 +91,12 @@ export default function AttendanceReport() {
       </div>
 
       <section className={styles.section}>
-        <h2>Recorded attendance ({attendance.length})</h2>
+        <div className={styles.sectionHead}>
+          <h2>Recorded attendance ({attendance.length})</h2>
+          <button type="button" onClick={exportCsv} className={styles.exportBtn}>
+            Export CSV
+          </button>
+        </div>
         {attendance.length === 0 ? (
           <p className={styles.muted}>No attendance recorded yet.</p>
         ) : (

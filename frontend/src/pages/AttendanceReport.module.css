@@ -58,10 +58,34 @@
   padding: 1.25rem;
 }
 
+.sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
 .section h2 {
   font-size: 1.1rem;
   font-weight: 600;
-  margin: 0 0 1rem;
+  margin: 0;
+}
+
+.exportBtn {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+}
+
+.exportBtn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
 }
 
 .tableWrap {

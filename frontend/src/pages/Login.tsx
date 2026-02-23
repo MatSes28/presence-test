@@ -33,9 +33,9 @@ export default function Login() {
   return (
     <div className={styles.page}>
       <div className={styles.card}>
-        <h1 className={styles.title}>CLIRDEC</h1>
+        <h1 className={styles.title}>CLIRDEC:PRESENCE</h1>
         <p className={styles.subtitle}>
-          Presence-Proximity & RFID-Enabled Smart Entry for Notation of Classroom Engagement
+          Attendance monitoring & classroom engagement — Central Luzon State University · DIT · College of Engineering (BSIT)
         </p>
         <form onSubmit={handleSubmit} className={styles.form}>
           <input

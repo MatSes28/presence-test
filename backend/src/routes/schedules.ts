@@ -16,8 +16,16 @@ const createScheduleSchema = z.object({
 });
 
 router.get('/', requireRoles('admin', 'faculty'), async (req, res) => {
+  const user = (req as { user: { userId: string; role: string } }).user;
+  if (user.role === 'admin') {
+    const result = await pool.query(
+      `SELECT s.*, u.full_name AS faculty_name FROM schedules s JOIN users u ON u.id = s.faculty_id ORDER BY s.day_of_week, s.start_time`
+    );
+    return res.json(result.rows);
+  }
   const result = await pool.query(
-    `SELECT s.*, u.full_name AS faculty_name FROM schedules s JOIN users u ON u.id = s.faculty_id ORDER BY s.day_of_week, s.start_time`
+    `SELECT s.*, u.full_name AS faculty_name FROM schedules s JOIN users u ON u.id = s.faculty_id WHERE s.faculty_id = $1 ORDER BY s.day_of_week, s.start_time`,
+    [user.userId]
   );
   res.json(result.rows);
 });

@@ -29,8 +29,8 @@ export default function App() {
       >
         <Route index element={<Dashboard />} />
         <Route path="sessions" element={<Sessions />} />
-        <Route path="schedules" element={<Schedules />} />
-        <Route path="users" element={<Users />} />
+        <Route path="schedules" element={<PrivateRoute roles={['admin']}><Schedules /></PrivateRoute>} />
+        <Route path="users" element={<PrivateRoute roles={['admin']}><Users /></PrivateRoute>} />
         <Route path="attendance/:sessionId" element={<AttendanceReport />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

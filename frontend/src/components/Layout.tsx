@@ -12,26 +12,26 @@ export default function Layout() {
       <header className={styles.header}>
         <div className={styles.brand}>
           <span className={styles.logo}>CLIRDEC</span>
-          <span className={styles.tagline}>Presence-Proximity & RFID Smart Entry</span>
+          <span className={styles.tagline}>Attendance & Classroom Engagement · CLSU DIT</span>
         </div>
         <nav className={styles.nav}>
           <NavLink to="/" className={({ isActive }) => (isActive ? styles.active : '')} end>
             Dashboard
           </NavLink>
-          {isFaculty && (
+          {(isFaculty || isAdmin) && (
             <NavLink to="/sessions" className={({ isActive }) => (isActive ? styles.active : '')}>
               Sessions
             </NavLink>
           )}
           {isAdmin && (
-            <NavLink to="/schedules" className={({ isActive }) => (isActive ? styles.active : '')}>
-              Schedules
-            </NavLink>
-          )}
-          {isFaculty && (
-            <NavLink to="/users" className={({ isActive }) => (isActive ? styles.active : '')}>
-              Users
-            </NavLink>
+            <>
+              <NavLink to="/schedules" className={({ isActive }) => (isActive ? styles.active : '')}>
+                Schedules
+              </NavLink>
+              <NavLink to="/users" className={({ isActive }) => (isActive ? styles.active : '')}>
+                Users
+              </NavLink>
+            </>
           )}
         </nav>
         <div className={styles.user}>
