@@ -15,7 +15,7 @@
 }
 
 .brand {
-  padding: 1.25rem 1.5rem;
+  padding: var(--space-2) var(--space-3);
   border-bottom: 1px solid var(--border-muted);
 }
 
@@ -36,17 +36,18 @@
 
 .nav {
   flex: 1;
-  padding: 0.75rem 0.5rem;
+  padding: var(--space-1) var(--space-1);
   display: flex;
   flex-direction: column;
-  gap: 0.125rem;
+  gap: 2px;
 }
 
 .navLink {
   display: flex;
   align-items: center;
-  gap: 0.625rem;
-  padding: 0.625rem 0.75rem;
+  gap: var(--space-1);
+  min-height: var(--touch-min);
+  padding: 0 var(--space-2);
   border-radius: var(--radius);
   color: var(--text-secondary);
   text-decoration: none;
@@ -66,15 +67,15 @@
 }
 
 .sidebarFooter {
-  padding: 1rem 1.5rem;
+  padding: var(--space-2) var(--space-3);
   border-top: 1px solid var(--border-muted);
 }
 
 .userBlock {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 0;
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
 }
 
 .userAvatar {
@@ -114,8 +115,11 @@
   font-size: 0.75rem;
   color: var(--text-muted);
   text-decoration: none;
-  display: block;
-  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  margin-top: var(--space-1);
+  padding: var(--space-1) 0;
+  min-height: var(--touch-min);
 }
 
 .footerLink:hover {
@@ -124,13 +128,14 @@
 
 .logout {
   width: 100%;
-  margin-top: 0.5rem;
-  padding: 0.5rem 0.75rem;
+  margin-top: var(--space-1);
+  min-height: var(--touch-min);
+  padding: 0 var(--space-2);
   background: transparent;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   color: var(--text-secondary);
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 500;
 }
 
@@ -149,8 +154,9 @@
 }
 
 .topBar {
+  min-height: var(--touch-min);
   height: 56px;
-  padding: 0 1.5rem;
+  padding: 0 var(--space-3);
   background: var(--surface);
   border-bottom: 1px solid var(--border-muted);
   display: flex;
@@ -166,7 +172,7 @@
 
 .main {
   flex: 1;
-  padding: 1.5rem;
+  padding: var(--space-3);
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
@@ -187,7 +193,7 @@
   .nav {
     flex-direction: row;
     flex-wrap: wrap;
-    padding: 0.5rem;
+    padding: var(--space-1);
   }
 
   .sidebarFooter {

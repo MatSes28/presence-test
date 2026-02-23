@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -12,11 +12,16 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const { login, token } = useAuth();
   const navigate = useNavigate();
+  const emailRef = useRef<HTMLInputElement>(null);
 
   if (token) {
     navigate('/', { replace: true });
     return null;
   }
+
+  useEffect(() => {
+    emailRef.current?.focus();
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -33,41 +38,75 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-[var(--bg)]">
+    <div className="min-h-screen flex items-center justify-center p-iso-3 bg-[var(--bg)]">
       <div className="absolute inset-0 bg-gradient-to-b from-[var(--bg)] via-[var(--bg-elevated)] to-[var(--bg)] opacity-80" aria-hidden />
       <Card className="relative w-full max-w-md border-[var(--border)] shadow-[var(--shadow-lg)]">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-xl font-mono tracking-wide text-[var(--accent)] text-center">
+        <CardHeader className="pb-iso-2 p-iso-3">
+          <CardTitle id="login-title" className="text-xl font-mono tracking-wide text-[var(--accent)] text-center">
             CLIRDEC:PRESENCE
           </CardTitle>
           <CardDescription className="text-center text-[var(--text-secondary)]">
             Attendance monitoring & classroom engagement — Central Luzon State University · DIT · College of Engineering (BSIT)
           </CardDescription>
         </CardHeader>
-        <CardContent className="pt-4">
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <Input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-            />
-            <Input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-            />
-            {error && <p className="text-sm text-[var(--error)]">{error}</p>}
-            <Button type="submit" disabled={loading} className="w-full">
+        <CardContent className="p-iso-3 pt-iso-2">
+          <form
+            onSubmit={handleSubmit}
+            className="flex flex-col gap-iso-2"
+            aria-labelledby="login-title"
+            aria-describedby={error ? 'login-error' : undefined}
+          >
+            <div>
+              <label htmlFor="login-email" className="block text-sm font-medium text-[var(--text)] mb-iso-1">
+                Email address
+              </label>
+              <Input
+                id="login-email"
+                ref={emailRef}
+                type="email"
+                placeholder="Enter email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+                aria-required="true"
+                aria-invalid={!!error}
+              />
+            </div>
+            <div>
+              <label htmlFor="login-password" className="block text-sm font-medium text-[var(--text)] mb-iso-1">
+                Password
+              </label>
+              <Input
+                id="login-password"
+                type="password"
+                placeholder="Enter password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                aria-required="true"
+                aria-invalid={!!error}
+              />
+            </div>
+            {error && (
+              <p id="login-error" className="text-sm text-[var(--error)]" role="alert">
+                {error}
+              </p>
+            )}
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full min-h-touch"
+              aria-busy={loading}
+              aria-label={loading ? 'Signing in' : 'Sign in'}
+            >
               {loading ? 'Signing in…' : 'Sign in'}
             </Button>
-            <p className="text-center text-xs text-[var(--text-muted)]">
-              <Link to="/privacy" className="text-[var(--accent)] hover:underline">Privacy notice</Link>
+            <p className="text-center text-xs text-[var(--text-muted)] mt-iso-1">
+              <Link to="/privacy" className="text-[var(--accent)] hover:underline inline-flex items-center justify-center py-iso-1 min-h-touch">
+                Privacy notice
+              </Link>
             </p>
           </form>
         </CardContent>

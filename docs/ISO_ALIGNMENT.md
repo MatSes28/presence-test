@@ -11,6 +11,7 @@ This document is an **informational assessment** of how CLIRDEC:PRESENCE aligns 
 | **ISO/IEC 27001** | Information security management (ISMS) | Access control, cryptography, logging, asset handling |
 | **ISO/IEC 29100** | Privacy framework | Handling of personal data (students, faculty, guardians) |
 | **ISO 8601** | Date and time format | Timestamps in APIs and storage |
+| **ISO 9241-110 / 143 / 171** | Usability and accessibility (UI, forms, dialogue) | Spacing, login/logout behaviour, touch targets — see [ISO_UI.md](ISO_UI.md) |
 
 ---
 
@@ -71,4 +72,4 @@ This document is an **informational assessment** of how CLIRDEC:PRESENCE aligns 
 - **ISO/IEC 27001:** Partially aligned: access control, hashing, rate limiting, headers, validation, **audit logging**, **CORS config**, **HTTPS check**, **JWT secret warning**. Remaining: secrets manager, optional IoT device auth.
 - **ISO/IEC 29100:** Partial: personal data with access control, **privacy notice**. Remaining: retention, deletion procedures.
 
-**Conclusion:** The system implements controls that support ISO 27001 and 29100 objectives, including audit logging and a privacy notice. It does **not** constitute formal certification; that would require an accredited audit.
+**Conclusion:** The system implements controls that support ISO 27001 and 29100 objectives, including audit logging and a privacy notice. UI and interaction follow ISO 9241–oriented practices (spacing, login/logout, touch targets) as described in [ISO_UI.md](ISO_UI.md). This does **not** constitute formal certification; that would require an accredited audit.

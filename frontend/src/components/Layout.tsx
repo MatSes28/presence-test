@@ -59,7 +59,12 @@ export default function Layout() {
             </div>
           </div>
           <Link to="/privacy" className={styles.footerLink}>Privacy</Link>
-          <button type="button" onClick={logout} className={styles.logout}>
+          <button
+            type="button"
+            onClick={logout}
+            className={styles.logout}
+            aria-label="Log out and end session"
+          >
             Log out
           </button>
         </div>

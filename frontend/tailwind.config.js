@@ -6,6 +6,18 @@ export default {
   ],
   theme: {
     extend: {
+      spacing: {
+        iso: 'var(--touch-min)',
+        'iso-1': 'var(--space-1)',
+        'iso-2': 'var(--space-2)',
+        'iso-3': 'var(--space-3)',
+        'iso-4': 'var(--space-4)',
+        'iso-5': 'var(--space-5)',
+        'iso-6': 'var(--space-6)',
+      },
+      minHeight: {
+        touch: 'var(--touch-min)',
+      },
       colors: {
         clirdec: {
           bg: 'var(--bg)',

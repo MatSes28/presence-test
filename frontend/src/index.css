@@ -35,6 +35,16 @@
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
   --font-sans: 'DM Sans', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* ISO 9241–aligned spacing (8px base grid) */
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-5: 40px;
+  --space-6: 48px;
+  /* Minimum touch target (ISO 9241-171 / WCAG 2.5.5) */
+  --touch-min: 44px;
 }
 
 * {
