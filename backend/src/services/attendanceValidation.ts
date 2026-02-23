@@ -80,3 +80,64 @@ export async function getActiveSessionForDevice(deviceId?: string): Promise<stri
   if (result.rows.length === 0) return null;
   return result.rows[0].id;
 }
+
+export interface IngestResult {
+  success: boolean;
+  eventId?: string;
+  reason?: string;
+  broadcast?: { sessionId: string; userId: string; full_name: string; recorded_at: string };
+}
+
+/** Resolve session, validate, record. Optionally notifies guardian if configured. */
+export async function ingestAttendance(payload: {
+  card_uid: string;
+  proximity_cm: number;
+  device_id?: string;
+  session_id?: string;
+}): Promise<IngestResult> {
+  let sessionId: string | null = payload.session_id ?? null;
+  if (!sessionId) {
+    sessionId = await getActiveSessionForDevice(payload.device_id);
+    if (!sessionId) {
+      return { success: false, reason: 'No active session' };
+    }
+  }
+  const result = await validateAndRecordAttendance(
+    { card_uid: payload.card_uid, proximity_cm: payload.proximity_cm, device_id: payload.device_id },
+    sessionId
+  );
+  if (!result.success) {
+    return { success: false, reason: result.reason, eventId: result.eventId };
+  }
+  const userRow = await pool.query(
+    `SELECT u.id, u.full_name FROM users u JOIN rfid_cards r ON r.user_id = u.id WHERE r.card_uid = $1`,
+    [payload.card_uid]
+  );
+  const full_name = userRow.rows[0]?.full_name ?? 'Unknown';
+  const userId = userRow.rows[0]?.id ?? '';
+  try {
+    const { getGuardianEmail, notifyGuardian } = await import('./notificationService.js');
+    const guardianEmail = await getGuardianEmail(userId);
+    if (guardianEmail) {
+      await notifyGuardian({
+        userId,
+        sessionId,
+        recipientEmail: guardianEmail,
+        studentName: full_name,
+        kind: 'attendance',
+      });
+    }
+  } catch {
+    // notification is best-effort
+  }
+  return {
+    success: true,
+    eventId: result.eventId,
+    broadcast: {
+      sessionId,
+      userId,
+      full_name,
+      recorded_at: new Date().toISOString(),
+    },
+  };
+}

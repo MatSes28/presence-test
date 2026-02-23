@@ -1,13 +1,13 @@
 import { Router } from 'express';
 import { pool } from '../db/pool.js';
 import { authMiddleware, requireRoles } from '../middleware/auth.js';
-import type { JwtPayload } from '../middleware/auth.js';
+import type { AuthRequest, JwtPayload } from '../middleware/auth.js';
 
 const router = Router();
 router.use(authMiddleware);
 
-async function canAccessSession(req: { user?: JwtPayload }, sessionId: string): Promise<boolean> {
-  const user = (req as { user: JwtPayload }).user;
+async function canAccessSession(req: AuthRequest, sessionId: string): Promise<boolean> {
+  const user = req.user;
   if (user?.role === 'admin') return true;
   const row = await pool.query(
     'SELECT 1 FROM class_sessions cs JOIN schedules s ON s.id = cs.schedule_id WHERE cs.id = $1 AND s.faculty_id = $2',
@@ -18,7 +18,7 @@ async function canAccessSession(req: { user?: JwtPayload }, sessionId: string): 
 
 router.get('/by-session/:sessionId', requireRoles('admin', 'faculty'), async (req, res) => {
   const { sessionId } = req.params;
-  if (!(await canAccessSession(req, sessionId))) {
+  if (!(await canAccessSession(req as AuthRequest, sessionId))) {
     return res.status(403).json({ error: 'Access denied to this session' });
   }
   const result = await pool.query(
@@ -34,7 +34,7 @@ router.get('/by-session/:sessionId', requireRoles('admin', 'faculty'), async (re
 
 router.get('/reports/session/:sessionId', requireRoles('admin', 'faculty'), async (req, res) => {
   const { sessionId } = req.params;
-  if (!(await canAccessSession(req, sessionId))) {
+  if (!(await canAccessSession(req as AuthRequest, sessionId))) {
     return res.status(403).json({ error: 'Access denied to this session' });
   }
   const session = await pool.query(
@@ -55,7 +55,7 @@ router.get('/reports/session/:sessionId', requireRoles('admin', 'faculty'), asyn
 router.get('/reports/session/:sessionId/export', requireRoles('admin', 'faculty'), async (req, res) => {
   const { sessionId } = req.params;
   const format = (req.query.format as string) || 'csv';
-  if (!(await canAccessSession(req, sessionId))) {
+  if (!(await canAccessSession(req as AuthRequest, sessionId))) {
     return res.status(403).json({ error: 'Access denied to this session' });
   }
   const session = await pool.query(
@@ -88,7 +88,7 @@ router.get('/reports/session/:sessionId/export', requireRoles('admin', 'faculty'
 });
 
 router.get('/reports/student/:userId', requireRoles('admin', 'faculty'), async (req, res) => {
-  const user = (req as { user: JwtPayload }).user;
+  const user = (req as AuthRequest).user;
   const { userId } = req.params;
   const from = (req.query.from as string) || new Date(0).toISOString();
   const to = (req.query.to as string) || new Date().toISOString();

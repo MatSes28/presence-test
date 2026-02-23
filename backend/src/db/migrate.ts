@@ -9,6 +9,11 @@ async function migrate() {
   const schemaPath = path.join(__dirname, 'schema.sql');
   const sql = fs.readFileSync(schemaPath, 'utf-8');
   await pool.query(sql);
+  const guardianPath = path.join(__dirname, 'schema-guardian-email.sql');
+  if (fs.existsSync(guardianPath)) {
+    const guardianSql = fs.readFileSync(guardianPath, 'utf-8');
+    await pool.query(guardianSql);
+  }
   console.log('Migration completed.');
   process.exit(0);
 }

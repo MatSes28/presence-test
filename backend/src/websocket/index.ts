@@ -1,6 +1,7 @@
 import { WebSocketServer } from 'ws';
 import type { Server } from 'http';
 
+/** WebSocket for dashboard clients (live attendance feed). */
 export function attachWebSocket(server: Server) {
   const wss = new WebSocketServer({ server, path: '/ws' });
 

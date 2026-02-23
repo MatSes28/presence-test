@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { useWebSocket, type AttendanceEvent } from '../hooks/useWebSocket';
-import { api } from '../api/client';
+import { queryKeys, fetchSessions } from '../api/queries';
 import styles from './Dashboard.module.css';
 
 interface SessionRow {
@@ -18,9 +19,11 @@ interface SessionRow {
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [liveEvents, setLiveEvents] = useState<AttendanceEvent[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: sessions = [], isLoading: loading } = useQuery({
+    queryKey: queryKeys.sessions,
+    queryFn: fetchSessions,
+  });
 
   const handleAttendance = useCallback((e: AttendanceEvent) => {
     setLiveEvents((prev) => [e, ...prev].slice(0, 20));
@@ -28,15 +31,7 @@ export default function Dashboard() {
 
   useWebSocket(handleAttendance);
 
-  useEffect(() => {
-    api
-      .get<SessionRow[]>('/api/sessions')
-      .then(setSessions)
-      .catch(() => setSessions([]))
-      .finally(() => setLoading(false));
-  }, []);
-
-  const activeSessions = sessions.filter((s) => s.status === 'active');
+  const activeSessions = (sessions as SessionRow[]).filter((s) => s.status === 'active');
 
   return (
     <div className={styles.dashboard}>

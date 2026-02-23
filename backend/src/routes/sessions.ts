@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { pool } from '../db/pool.js';
 import { authMiddleware, requireRoles } from '../middleware/auth.js';
-import type { JwtPayload } from '../middleware/auth.js';
+import type { AuthRequest } from '../middleware/auth.js';
 
 const router = Router();
 router.use(authMiddleware);
@@ -10,13 +10,13 @@ router.use(authMiddleware);
 const createSessionSchema = z.object({ schedule_id: z.string().uuid() });
 const endSessionSchema = z.object({ session_id: z.string().uuid() });
 
-function isAdmin(req: { user?: JwtPayload }) {
-  return (req as { user: JwtPayload }).user?.role === 'admin';
+function isAdmin(req: AuthRequest) {
+  return req.user?.role === 'admin';
 }
 
 router.get('/', requireRoles('admin', 'faculty'), async (req, res) => {
-  const user = (req as { user: JwtPayload }).user;
-  if (isAdmin(req)) {
+  const user = (req as AuthRequest).user;
+  if (isAdmin(req as AuthRequest)) {
     const result = await pool.query(
       `SELECT cs.*, s.subject, s.room, s.start_time, s.end_time, u.full_name AS faculty_name
        FROM class_sessions cs
@@ -41,8 +41,8 @@ router.get('/', requireRoles('admin', 'faculty'), async (req, res) => {
 });
 
 router.get('/active', requireRoles('admin', 'faculty'), async (req, res) => {
-  const user = (req as { user: JwtPayload }).user;
-  if (isAdmin(req)) {
+  const user = (req as AuthRequest).user;
+  if (isAdmin(req as AuthRequest)) {
     const result = await pool.query(
       `SELECT cs.*, s.subject, s.room, s.start_time, s.end_time, u.full_name AS faculty_name
        FROM class_sessions cs
@@ -71,9 +71,9 @@ router.post('/start', requireRoles('admin', 'faculty'), async (req, res) => {
     res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
     return;
   }
-  const user = (req as { user: JwtPayload }).user;
+  const user = (req as AuthRequest).user;
   const { schedule_id } = parsed.data;
-  if (!isAdmin(req)) {
+  if (!isAdmin(req as AuthRequest)) {
     const check = await pool.query('SELECT id FROM schedules WHERE id = $1 AND faculty_id = $2', [schedule_id, user.userId]);
     if (check.rows.length === 0) {
       return res.status(403).json({ error: 'You can only start sessions for your own schedules' });
@@ -92,8 +92,8 @@ router.post('/end', requireRoles('admin', 'faculty'), async (req, res) => {
     res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
     return;
   }
-  const user = (req as { user: JwtPayload }).user;
-  if (!isAdmin(req)) {
+  const user = (req as AuthRequest).user;
+  if (!isAdmin(req as AuthRequest)) {
     const check = await pool.query(
       'SELECT cs.id FROM class_sessions cs JOIN schedules s ON s.id = cs.schedule_id WHERE cs.id = $1 AND s.faculty_id = $2',
       [parsed.data.session_id, user.userId]
@@ -114,6 +114,33 @@ router.post('/end', requireRoles('admin', 'faculty'), async (req, res) => {
     return;
   }
   res.json(updated.rows[0]);
+});
+
+/** Create sessions for today based on schedules (day_of_week). Admin only. Idempotent: skips if session already exists for that schedule today. */
+router.post('/auto-create', requireRoles('admin'), async (_req, res) => {
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+  const todayStartIso = todayStart.toISOString();
+  const schedules = await pool.query(
+    'SELECT id FROM schedules WHERE day_of_week = $1',
+    [dayOfWeek]
+  );
+  const created: string[] = [];
+  for (const row of schedules.rows) {
+    const existing = await pool.query(
+      `SELECT 1 FROM class_sessions WHERE schedule_id = $1 AND started_at >= $2 AND status = 'active'`,
+      [row.id, todayStartIso]
+    );
+    if (existing.rows.length > 0) continue;
+    const insert = await pool.query(
+      `INSERT INTO class_sessions (schedule_id, status) VALUES ($1, 'active') RETURNING id`,
+      [row.id]
+    );
+    created.push(insert.rows[0].id);
+  }
+  res.json({ created: created.length, sessionIds: created });
 });
 
 export default router;

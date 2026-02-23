@@ -1,6 +1,13 @@
 # ESP32 + RC522 + Ultrasonic for CLIRDEC
 
-Use an ESP32 to read RFID (RC522) and distance (ultrasonic), then POST to the server.
+Use an ESP32 to read RFID (RC522) and distance (ultrasonic), then send to the server via **REST** or **WebSocket (IoT channel)**.
+
+## Endpoints
+
+- **REST:** `POST https://<server>/api/iot/attendance` with JSON body (see below).
+- **WebSocket (IoT):** `wss://<server>/iot` — connect and send messages:
+  - `{"type":"ping"}` or `{"type":"heartbeat"}` → server replies `{"type":"pong","ts":...}` for connection monitoring.
+  - `{"type":"attendance","data":{"card_uid":"...","proximity_cm":35,"session_id":"optional-uuid","device_id":"optional"}}` → same validation as REST; attendance is recorded and dashboard is updated.
 
 ## Wiring (conceptual)
 

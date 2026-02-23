@@ -9,6 +9,8 @@ export interface JwtPayload {
   role: UserRole;
 }
 
+export type AuthRequest = Request & { user: JwtPayload };
+
 export function authMiddleware(req: Request, res: Response, next: NextFunction) {
   const auth = req.headers.authorization;
   if (!auth?.startsWith('Bearer ')) {

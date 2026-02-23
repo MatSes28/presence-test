@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash VARCHAR(255) NOT NULL,
   role VARCHAR(20) NOT NULL CHECK (role IN ('admin', 'faculty', 'student')),
   full_name VARCHAR(255) NOT NULL,
+  guardian_email VARCHAR(255),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -63,3 +64,17 @@ CREATE INDEX IF NOT EXISTS idx_attendance_events_user ON attendance_events(user_
 CREATE INDEX IF NOT EXISTS idx_class_sessions_schedule ON class_sessions(schedule_id);
 CREATE INDEX IF NOT EXISTS idx_class_sessions_status ON class_sessions(status);
 CREATE INDEX IF NOT EXISTS idx_rfid_cards_uid ON rfid_cards(card_uid);
+
+-- Email notification audit (guardian notifications)
+CREATE TABLE IF NOT EXISTS email_notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  session_id UUID REFERENCES class_sessions(id) ON DELETE SET NULL,
+  kind VARCHAR(50) NOT NULL,
+  recipient VARCHAR(255) NOT NULL,
+  sent_at TIMESTAMPTZ DEFAULT NOW(),
+  status VARCHAR(20) NOT NULL DEFAULT 'sent',
+  payload JSONB
+);
+CREATE INDEX IF NOT EXISTS idx_email_notifications_user ON email_notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_email_notifications_sent ON email_notifications(sent_at);

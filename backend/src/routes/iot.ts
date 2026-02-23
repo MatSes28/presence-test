@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { pool } from '../db/pool.js';
-import { validateAndRecordAttendance, getActiveSessionForDevice } from '../services/attendanceValidation.js';
+import { ingestAttendance } from '../services/attendanceValidation.js';
 
 const router = Router();
 
@@ -13,8 +12,9 @@ const payloadSchema = z.object({
 });
 
 /**
- * IoT ingestion endpoint: ESP32 sends RFID + proximity data.
+ * IoT ingestion endpoint: ESP32 sends RFID + proximity data (REST).
  * If session_id is omitted, the current active session is used.
+ * Devices can also use WebSocket /iot for attendance + heartbeat.
  */
 router.post('/attendance', async (req, res) => {
   const parsed = payloadSchema.safeParse(req.body);
@@ -22,33 +22,11 @@ router.post('/attendance', async (req, res) => {
     res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
     return;
   }
-  const { session_id, ...payload } = parsed.data;
-  let sessionId: string | null = session_id ?? null;
-  if (!sessionId) {
-    sessionId = await getActiveSessionForDevice(payload.device_id);
-    if (!sessionId) {
-      res.status(400).json({ error: 'No active session; provide session_id or start a session' });
-      return;
-    }
-  }
-  const result = await validateAndRecordAttendance(
-    { card_uid: payload.card_uid, proximity_cm: payload.proximity_cm, device_id: payload.device_id },
-    sessionId as string
-  );
+  const result = await ingestAttendance(parsed.data);
   if (result.success && result.eventId) {
-    const userRow = await pool.query(
-      `SELECT u.id, u.full_name FROM users u JOIN rfid_cards r ON r.user_id = u.id WHERE r.card_uid = $1`,
-      [payload.card_uid]
-    );
-    const full_name = userRow.rows[0]?.full_name ?? 'Unknown';
     const broadcast = req.app.get('wsBroadcast') as { broadcastAttendance: (e: { sessionId: string; userId: string; full_name: string; recorded_at: string }) => void } | undefined;
-    if (broadcast?.broadcastAttendance) {
-      broadcast.broadcastAttendance({
-        sessionId,
-        userId: userRow.rows[0]?.id ?? '',
-        full_name,
-        recorded_at: new Date().toISOString(),
-      });
+    if (broadcast?.broadcastAttendance && result.broadcast) {
+      broadcast.broadcastAttendance(result.broadcast);
     }
     res.status(201).json({ success: true, eventId: result.eventId });
     return;

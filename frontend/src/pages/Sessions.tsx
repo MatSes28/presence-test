@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
+import { queryKeys, fetchSessions, fetchSchedules } from '../api/queries';
 import styles from './Sessions.module.css';
 
 interface SessionRow {
@@ -24,53 +26,47 @@ interface ScheduleOption {
 }
 
 export default function Sessions() {
-  const [sessions, setSessions] = useState<SessionRow[]>([]);
-  const [schedules, setSchedules] = useState<ScheduleOption[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [starting, setStarting] = useState(false);
+  const queryClient = useQueryClient();
   const [selectedSchedule, setSelectedSchedule] = useState('');
-
+  const { data: sessions = [], isLoading: loading } = useQuery({
+    queryKey: queryKeys.sessions,
+    queryFn: fetchSessions,
+  });
+  const { data: schedules = [] } = useQuery({
+    queryKey: queryKeys.schedules,
+    queryFn: fetchSchedules,
+  });
+  const schedList = schedules as ScheduleOption[];
+  const sessList = sessions as SessionRow[];
   useEffect(() => {
-    Promise.all([
-      api.get<SessionRow[]>('/api/sessions'),
-      api.get<ScheduleOption[]>('/api/schedules'),
-    ])
-      .then(([sess, sched]) => {
-        setSessions(sess);
-        setSchedules(sched);
-        if (sched.length && !selectedSchedule) setSelectedSchedule(sched[0].id);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+    if (schedList.length && !selectedSchedule) setSelectedSchedule(schedList[0].id);
+  }, [schedList.length]);
 
-  async function startSession() {
+  const startMutation = useMutation({
+    mutationFn: (schedule_id: string) => api.post('/api/sessions/start', { schedule_id }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.sessions }),
+  });
+  const endMutation = useMutation({
+    mutationFn: (session_id: string) => api.post('/api/sessions/end', { session_id }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.sessions }),
+  });
+
+  function startSession() {
     if (!selectedSchedule) return;
-    setStarting(true);
-    try {
-      await api.post('/api/sessions/start', { schedule_id: selectedSchedule });
-      const list = await api.get<SessionRow[]>('/api/sessions');
-      setSessions(list);
-    } catch (e) {
-      alert((e as Error).message);
-    } finally {
-      setStarting(false);
-    }
+    startMutation.mutate(selectedSchedule, {
+      onError: (e) => alert((e as Error).message),
+    });
   }
 
-  async function endSession(sessionId: string) {
-    try {
-      await api.post('/api/sessions/end', { session_id: sessionId });
-      const list = await api.get<SessionRow[]>('/api/sessions');
-      setSessions(list);
-    } catch (e) {
-      alert((e as Error).message);
-    }
+  function endSession(sessionId: string) {
+    endMutation.mutate(sessionId, {
+      onError: (e) => alert((e as Error).message),
+    });
   }
 
   if (loading) return <p className={styles.muted}>Loading…</p>;
 
-  const active = sessions.filter((s) => s.status === 'active');
+  const active = sessList.filter((s) => s.status === 'active');
 
   return (
     <div className={styles.page}>
@@ -85,7 +81,7 @@ export default function Sessions() {
             onChange={(e) => setSelectedSchedule(e.target.value)}
             className={styles.select}
           >
-            {schedules.map((s) => (
+            {schedList.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.subject} — {s.room}
               </option>
@@ -94,10 +90,10 @@ export default function Sessions() {
           <button
             type="button"
             onClick={startSession}
-            disabled={starting || !selectedSchedule}
+            disabled={startMutation.isPending || !selectedSchedule}
             className={styles.button}
           >
-            {starting ? 'Starting…' : 'Start session'}
+            {startMutation.isPending ? 'Starting…' : 'Start session'}
           </button>
         </div>
       </section>
@@ -128,8 +124,8 @@ export default function Sessions() {
 
       <section className={styles.section}>
         <h2>Recent sessions</h2>
-        <ul className={styles.list}>
-          {sessions.slice(0, 15).map((s) => (
+          <ul className={styles.list}>
+            {sessList.slice(0, 15).map((s) => (
             <li key={s.id} className={styles.card}>
               <div>
                 <strong>{s.subject}</strong> — {s.room}

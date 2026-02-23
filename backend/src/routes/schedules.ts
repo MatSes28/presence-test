@@ -16,7 +16,7 @@ const createScheduleSchema = z.object({
 });
 
 router.get('/', requireRoles('admin', 'faculty'), async (req, res) => {
-  const user = (req as { user: { userId: string; role: string } }).user;
+  const user = (req as import('../middleware/auth.js').AuthRequest).user;
   if (user.role === 'admin') {
     const result = await pool.query(
       `SELECT s.*, u.full_name AS faculty_name FROM schedules s JOIN users u ON u.id = s.faculty_id ORDER BY s.day_of_week, s.start_time`
