@@ -119,13 +119,13 @@ ESP32-S3 units connect to the same network (WiFi) as the server and send attenda
    - **Build command:** `npm run build` (builds frontend, copies to backend, then builds backend).
    - **Start command:** `npm run start` (runs `node backend/dist/index.js`).
 
-7. Run migrations once after first deploy (Railway run command or one-off):
+7. **Run migrations after first deploy** (required). From the project root with `DATABASE_URL` set to your production DB:
 
    ```bash
    npm run db:migrate
    ```
 
-   Ensure `DATABASE_URL` is available when running this.
+   This applies all schemas (base, guardian email, v2/discrepancy/behavior/IoT, **schema-iot-health** for `last_seen_at`, **schema-audit** for `audit_log`). If you see errors like `relation "audit_log" does not exist` or `column "last_seen_at" does not exist`, run this step.
 
 8. Create the first admin user via `/api/auth/register` as above (use your deployed URL).
 

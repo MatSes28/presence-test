@@ -27,6 +27,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const httpServer = createServer(app);
 
+// When behind a proxy (Railway, load balancer), trust X-Forwarded-* so rate limiting and IP logging work correctly
+if (env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 // CORS: in production restrict to CORS_ORIGIN (comma-separated); else allow any (dev)
 const corsOrigin = env.CORS_ORIGIN
   ? env.CORS_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean)
