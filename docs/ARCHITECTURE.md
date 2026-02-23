@@ -16,7 +16,7 @@ Attendance monitoring and classroom engagement system for **Central Luzon State 
 | **Backend** | Node, Express, TypeScript | ✅ Same | |
 | **Database** | PostgreSQL, Drizzle ORM | PostgreSQL, raw `pg` | Drizzle optional for migrations |
 | **Auth** | Session + HTTP-only cookies | JWT (Bearer) | Session/cookies possible later |
-| **Real-time** | /ws (clients), /iot (devices) | /ws (dashboard), /iot (devices) + REST /api/iot/attendance | ✅ |
+| **Real-time** | /ws (clients), /iot (devices) | /ws (dashboard), /iot (devices) + REST /api/iot/attendance; devices connect over **WiFi** | ✅ |
 | **Validation** | 7-second RFID+proximity window | Configurable (env), default 7s | ✅ |
 | **Security** | Helmet, rate limiting | Helmet + express-rate-limit | ✅ |
 

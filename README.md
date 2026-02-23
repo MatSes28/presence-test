@@ -8,7 +8,7 @@ See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for system architecture and
 
 - **RFID-based identification** — Students authenticate via RFID cards linked to their profiles.
 - **Proximity-assisted presence** — Ultrasonic sensing confirms the student is within the entry zone.
-- **ESP32 IoT integration** — Hardware (RC522 + ultrasonic) sends validated events to the server.
+- **ESP32-S3 IoT integration** — Devices connect over **WiFi** and send validated events (RC522 + ultrasonic) to the server.
 - **Session-based recording** — Attendance is recorded only during active class sessions.
 - **Role-based access** — Admin and faculty dashboards; students use cards only.
 - **Real-time updates** — WebSocket feed for live attendance events.
@@ -22,7 +22,7 @@ See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for system architecture and
 | Backend | Node.js, Express |
 | Database | PostgreSQL |
 | Real-time | WebSocket |
-| Hardware | ESP32, RC522 RFID, ultrasonic sensors |
+| Hardware | ESP32-S3 (WiFi), RC522 RFID, ultrasonic sensors |
 
 ## Local development
 
@@ -67,9 +67,11 @@ See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for system architecture and
 
    Then sign in at the app with that email and password.
 
-### IoT endpoint (ESP32)
+### IoT endpoint (ESP32-S3 over WiFi)
 
-POST `http://<server>/api/iot/attendance` with JSON:
+ESP32-S3 units connect to the same network (WiFi) as the server and send attendance via HTTP or WebSocket.
+
+- **REST:** POST `http://<server>/api/iot/attendance` (use `https` in production) with JSON:
 
 ```json
 {
