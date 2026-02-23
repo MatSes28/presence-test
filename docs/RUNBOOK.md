@@ -22,7 +22,7 @@ World-class university deployment: procedures for migrations, backups, restore, 
    ```bash
    npm run db:migrate
    ```
-3. Migrations run in order: `schema.sql`, `schema-guardian-email.sql`, `schema-v2.sql`, `schema-iot-health.sql`, `schema-audit.sql`, `schema-optional-tables.sql` (classrooms, subjects), `schema-classrooms-subjects-fk.sql`, `schema-lab-computers.sql`, `schema-session-lifecycle.sql` (scheduled/active/ended, absent). Each is idempotent where possible (`IF NOT EXISTS`).
+3. Migrations run in order: `schema.sql`, `schema-guardian-email.sql`, `schema-v2.sql`, `schema-iot-health.sql`, `schema-audit.sql`, `schema-optional-tables.sql` (classrooms, subjects), `schema-classrooms-subjects-fk.sql`, `schema-lab-computers.sql`, `schema-session-lifecycle.sql` (scheduled/active/ended, absent), `schema-schedule-device.sql` (schedules.device_id for IoT device per room). Each is idempotent where possible (`IF NOT EXISTS`).
 4. On failure: fix the cause (e.g. conflicting schema), then re-run. Do not re-run blindly after manual fixes.
 
 ---

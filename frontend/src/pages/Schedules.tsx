@@ -21,6 +21,14 @@ interface ScheduleRow {
   classroom_name?: string | null;
   subject_code?: string | null;
   subject_name?: string | null;
+  device_id?: string | null;
+  iot_device_id?: string | null;
+  iot_device_name?: string | null;
+}
+
+interface IotDeviceOption {
+  device_id: string;
+  name: string | null;
 }
 
 interface UserOption {
@@ -55,9 +63,11 @@ export default function Schedules() {
     faculty_id: '',
     classroom_id: '' as string,
     subject_id: '' as string,
+    device_id: '' as string,
   });
   const [classrooms, setClassrooms] = useState<ClassroomOption[]>([]);
   const [subjects, setSubjects] = useState<SubjectOption[]>([]);
+  const [iotDevices, setIotDevices] = useState<IotDeviceOption[]>([]);
 
   useEffect(() => {
     setError(null);
@@ -66,13 +76,15 @@ export default function Schedules() {
       api.get<UserOption[]>('/api/users'),
       api.get<ClassroomOption[]>('/api/classrooms').catch(() => []),
       api.get<SubjectOption[]>('/api/subjects').catch(() => []),
+      api.get<{ device_id: string; name: string | null }[]>('/api/iot/devices').catch(() => []),
     ])
-      .then(([sched, users, classList, subjList]) => {
+      .then(([sched, users, classList, subjList, devices]) => {
         setSchedules(sched);
         const facultyList = users.filter((u) => u.role === 'faculty' || u.role === 'admin');
         setFaculty(facultyList);
         setClassrooms(classList);
         setSubjects(subjList);
+        setIotDevices(devices || []);
         if (facultyList.length && !form.faculty_id) setForm((f) => ({ ...f, faculty_id: facultyList[0].id }));
       })
       .catch((err) => {
@@ -90,10 +102,11 @@ export default function Schedules() {
         ...form,
         classroom_id: form.classroom_id || undefined,
         subject_id: form.subject_id || undefined,
+        device_id: form.device_id || undefined,
       });
       const list = await api.get<ScheduleRow[]>('/api/schedules');
       setSchedules(list);
-      setForm({ subject: '', room: '', start_time: '08:00', end_time: '09:00', day_of_week: 1, faculty_id: form.faculty_id, classroom_id: '', subject_id: '' });
+      setForm({ subject: '', room: '', start_time: '08:00', end_time: '09:00', day_of_week: 1, faculty_id: form.faculty_id, classroom_id: '', subject_id: '', device_id: '' });
     } catch (err) {
       alert((err as Error).message);
     }
@@ -117,7 +130,7 @@ export default function Schedules() {
         <Card>
           <CardHeader>
             <CardTitle>Add schedule</CardTitle>
-            <CardDescription>Create a new class slot.</CardDescription>
+            <CardDescription>Create a new class slot. Sessions auto-start at start time. Assign an IoT device so taps from that device count for this room.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="flex flex-wrap gap-3 items-end">
@@ -189,6 +202,18 @@ export default function Schedules() {
                   ))}
                 </Select>
               )}
+              {iotDevices.length > 0 && (
+                <Select
+                  value={form.device_id}
+                  onChange={(e) => setForm((f) => ({ ...f, device_id: e.target.value }))}
+                  className="min-w-[180px]"
+                >
+                  <option value="">IoT device (room)</option>
+                  {iotDevices.map((d) => (
+                    <option key={d.device_id} value={d.device_id}>{d.name || d.device_id}</option>
+                  ))}
+                </Select>
+              )}
               <Button type="submit">Add</Button>
             </form>
           </CardContent>
@@ -210,6 +235,7 @@ export default function Schedules() {
                 <th>Day</th>
                 <th>Time</th>
                 <th>Faculty</th>
+                {iotDevices.length > 0 && <th>IoT device</th>}
                 {(classrooms.length > 0 || subjects.length > 0) && <th>Classroom / Subject</th>}
               </tr>
             </thead>
@@ -221,6 +247,7 @@ export default function Schedules() {
                   <td>{DAYS[s.day_of_week]}</td>
                   <td>{s.start_time} – {s.end_time}</td>
                   <td>{s.faculty_name}</td>
+                  {iotDevices.length > 0 && <td>{s.iot_device_name || s.device_id || '—'}</td>}
                   {(classrooms.length > 0 || subjects.length > 0) && (
                     <td>{(s.classroom_name || s.subject_code) ? `${s.classroom_name ?? ''} ${s.subject_code ?? ''}`.trim() : '—'}</td>
                   )}

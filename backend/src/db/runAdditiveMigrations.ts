@@ -101,6 +101,15 @@ export async function runAdditiveMigrations(): Promise<void> {
       const err = e as { code?: string };
       if (err?.code !== '42P01') throw e;
     }
+
+    // Schedule -> IoT device (which device is in the room)
+    try {
+      await client.query(`ALTER TABLE schedules ADD COLUMN IF NOT EXISTS device_id VARCHAR(100)`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_schedules_device_id ON schedules(device_id)`);
+    } catch (e: unknown) {
+      const err = e as { code?: string };
+      if (err?.code !== '42P01') throw e;
+    }
   } finally {
     client.release();
   }

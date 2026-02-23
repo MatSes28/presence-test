@@ -41,6 +41,10 @@ async function migrate() {
   if (fs.existsSync(lifecyclePath)) {
     await pool.query(fs.readFileSync(lifecyclePath, 'utf-8'));
   }
+  const scheduleDevicePath = path.join(__dirname, 'schema-schedule-device.sql');
+  if (fs.existsSync(scheduleDevicePath)) {
+    await pool.query(fs.readFileSync(scheduleDevicePath, 'utf-8'));
+  }
   console.log('Migration completed.');
   process.exit(0);
 }
