@@ -22,7 +22,7 @@ World-class university deployment: procedures for migrations, backups, restore, 
    ```bash
    npm run db:migrate
    ```
-3. Migrations run in order: `schema.sql`, `schema-guardian-email.sql`, `schema-v2.sql`, `schema-iot-health.sql`, `schema-audit.sql`. Each is idempotent where possible (`IF NOT EXISTS`).
+3. Migrations run in order: `schema.sql`, `schema-guardian-email.sql`, `schema-v2.sql`, `schema-iot-health.sql`, `schema-audit.sql`, `schema-optional-tables.sql` (classrooms, subjects). Each is idempotent where possible (`IF NOT EXISTS`).
 4. On failure: fix the cause (e.g. conflicting schema), then re-run. Do not re-run blindly after manual fixes.
 
 ---
@@ -115,9 +115,27 @@ SELECT * FROM audit_log WHERE resource_type = 'user' ORDER BY created_at DESC LI
 
 **Endpoint:** `GET /health`
 
-**Expected:** `200` with body `{ "status": "ok", "service": "clirdec-presence" }`. Optional: health includes DB check (see deployment).
+**Expected:** `200` with body `{ "status": "ok", "service": "clirdec-presence", "database": "up" }` (or `503` with `database: "down"` when DB is unavailable).
 
 **Use:** Load balancer, uptime monitor, container orchestration.
+
+---
+
+## 6b. API documentation
+
+**Endpoint:** `GET /api-docs` (Swagger UI), `GET /api-docs/spec.json` (OpenAPI 3 spec).
+
+**Use:** Developers and integrators; all API routes are documented (auth, sessions, users, attendance, IoT, health).
+
+---
+
+## 6c. Password reset (admin/faculty)
+
+**When:** Users forget password; only admin and faculty have login accounts (students use RFID only).
+
+**Flow:** Login page → “Forgot password?” → `/forgot-password` (enter email) → backend sends reset link via Resend (if `RESEND_API_KEY`, `EMAIL_FROM`, and `PASSWORD_RESET_APP_URL` are set) → user opens `/reset-password?token=...` and sets new password.
+
+**Env:** `PASSWORD_RESET_APP_URL` = frontend base URL (e.g. `https://your-app.railway.app`). Do not set `SEED_ADMIN` in production; it is for CI/E2E only (creates a default admin when no users exist).
 
 ---
 

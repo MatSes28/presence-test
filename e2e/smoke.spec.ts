@@ -34,4 +34,15 @@ test.describe('Smoke: Admin navigation', () => {
     await expect(page).toHaveURL(/\/attendance\/.+/);
     await expect(page.getByText(/attendance|report|session|no .* found/i).first()).toBeVisible({ timeout: 5000 });
   });
+
+  test('Admin can open Import CSV modal and submit CSV', async ({ page }) => {
+    await page.goto('/users');
+    await expect(page).toHaveURL('/users');
+    await page.getByRole('button', { name: /import csv/i }).click();
+    await expect(page.getByRole('dialog', { name: /bulk import|import/i })).toBeVisible({ timeout: 3000 });
+    const csv = 'e2e-import@example.com,E2E Import User,student,,,\n';
+    await page.getByPlaceholder(/email,full_name,role/).fill(csv);
+    await page.getByRole('button', { name: /^Import$/ }).click();
+    await expect(page.getByText(/Created: \d+ · Skipped: \d+/)).toBeVisible({ timeout: 10000 });
+  });
 });

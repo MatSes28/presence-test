@@ -33,7 +33,16 @@
         "responses": { "200": { "description": "Success" }, "400": { "description": "Invalid/expired token" } } }
     },
     "/api/sessions": {
-      "get": { "summary": "List sessions", "security": [{}], "responses": { "200": { "description": "Sessions list" } } }
+      "get": {
+        "summary": "List sessions",
+        "security": [{}],
+        "parameters": [
+          { "name": "date", "in": "query", "description": "Filter by session date (YYYY-MM-DD)", "schema": { "type": "string", "format": "date" } },
+          { "name": "room", "in": "query", "description": "Filter by room (partial match)", "schema": { "type": "string" } },
+          { "name": "subject", "in": "query", "description": "Filter by subject (partial match)", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Sessions list" } }
+      }
     },
     "/api/sessions/start": {
       "post": {

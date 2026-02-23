@@ -36,12 +36,17 @@ This document assesses how ready **CLIRDEC:PRESENCE** is for production use with
 
 - **Health check:** `GET /health` for load balancers and monitoring.
 - **Deployment:** Railway (and similar) flow documented; env vars for DB, JWT, CORS, HTTPS, cron, email.
-- **Migrations:** Sequential SQL migrations; single `npm run db:migrate` command.
+- **Migrations:** Sequential SQL migrations; single `npm run db:migrate` command; optional tables (classrooms, subjects) via `schema-optional-tables.sql` (included in `db:migrate`).
+- **CI:** GitHub Actions workflow runs backend unit tests and E2E (Playwright) on push/PR; uses PostgreSQL service and optional `SEED_ADMIN=1` for test user.
 
 ### UI and UX
 
 - **Accessibility:** ISO 9241–aligned spacing, labels, focus order, touch targets, ARIA where needed (see [ISO_UI.md](ISO_UI.md)).
 - **Consistency:** Design tokens, Shadcn-style components, sidebar layout.
+- **Dashboard filters:** Date range (today / week / all) and room/subject search for sessions.
+- **Password reset:** Forgot-password flow for admin/faculty (email link to `/reset-password?token=...`); requires `PASSWORD_RESET_APP_URL`, Resend, and `EMAIL_FROM`.
+- **Student “my attendance”:** Public `/my-attendance?token=...` page for students to view their own attendance via a time-limited link (admin-generated).
+- **API docs:** `GET /api-docs` serves Swagger UI; spec at `GET /api-docs/spec.json`.
 
 ---
 
@@ -74,7 +79,7 @@ This document assesses how ready **CLIRDEC:PRESENCE** is for production use with
 | **No automated session creation by schedule** | Only “today”; no multi-day or custom rules | Extend cron or add rules to create sessions for multiple days or by schedule template. |
 | **No formal SLA** | No committed uptime | Define target availability (e.g. 99.5%) and document in ops; use managed DB + health checks. |
 | **Single DB** | No read replicas | For very high read load, add read replicas and separate read paths (future). |
-| **No student portal** | Students only use RFID | Optional: student view (e.g. “my attendance”) with separate auth or limited link. |
+| **No student portal** | Students only use RFID | **Addressed:** Student “my attendance” page at `/my-attendance?token=...` (admin generates link per student). |
 
 ---
 
@@ -89,7 +94,7 @@ Use this as a pre-launch list for a **department or pilot** deployment.
 - [ ] **First admin:** Create via `POST /api/auth/register` (or a one-off script) and then use the app.
 - [ ] **IoT (if used):** Register devices in the app; consider enforcing device auth on `/api/iot/attendance`.
 - [ ] **Monitoring:** At least health checks (e.g. `GET /health`) and alerting on failure; optional logging/APM.
-- [ ] **Documentation:** Share README and ARCHITECTURE with ops; add a short runbook (migrate, backup, restore, audit).
+- [ ] **Documentation:** Share README and ARCHITECTURE with ops; [RUNBOOK.md](RUNBOOK.md) covers migrate, backup, restore, audit, password reset, API docs; **SEED_ADMIN** is for CI only—do not use in production.
 
 ---
 

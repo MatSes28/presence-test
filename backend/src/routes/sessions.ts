@@ -19,26 +19,47 @@ function isAdmin(req: AuthRequest) {
 
 router.get('/', requireRoles('admin', 'faculty'), async (req, res) => {
   const user = (req as AuthRequest).user;
+  const dateParam = typeof req.query.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(req.query.date) ? req.query.date : null;
+  const roomParam = typeof req.query.room === 'string' && req.query.room.trim() ? req.query.room.trim() : null;
+  const subjectParam = typeof req.query.subject === 'string' && req.query.subject.trim() ? req.query.subject.trim() : null;
+
+  const conditions: string[] = [];
+  const values: unknown[] = [];
+  let idx = 1;
   if (isAdmin(req as AuthRequest)) {
-    const result = await pool.query(
-      `SELECT cs.*, s.subject, s.room, s.start_time, s.end_time, u.full_name AS faculty_name
-       FROM class_sessions cs
-       JOIN schedules s ON s.id = cs.schedule_id
-       JOIN users u ON u.id = s.faculty_id
-       ORDER BY cs.started_at DESC
-       LIMIT 100`
-    );
-    return res.json(result.rows);
+    // no base filter
+  } else {
+    conditions.push(`s.faculty_id = $${idx}`);
+    values.push(user.userId);
+    idx++;
   }
+  if (dateParam) {
+    conditions.push(`(cs.started_at AT TIME ZONE 'UTC')::date = $${idx}::date`);
+    values.push(dateParam);
+    idx++;
+  }
+  if (roomParam) {
+    conditions.push(`s.room ILIKE $${idx}`);
+    values.push(`%${roomParam}%`);
+    idx++;
+  }
+  if (subjectParam) {
+    conditions.push(`s.subject ILIKE $${idx}`);
+    values.push(`%${subjectParam}%`);
+    idx++;
+  }
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  values.push(100);
+  const limitPlaceholder = values.length;
   const result = await pool.query(
     `SELECT cs.*, s.subject, s.room, s.start_time, s.end_time, u.full_name AS faculty_name
      FROM class_sessions cs
      JOIN schedules s ON s.id = cs.schedule_id
      JOIN users u ON u.id = s.faculty_id
-     WHERE s.faculty_id = $1
+     ${whereClause}
      ORDER BY cs.started_at DESC
-     LIMIT 100`,
-    [user.userId]
+     LIMIT $${limitPlaceholder}`,
+    values
   );
   res.json(result.rows);
 });
