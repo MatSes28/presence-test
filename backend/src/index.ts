@@ -13,6 +13,7 @@ import cron from 'node-cron';
 import { ingestAttendance } from './services/attendanceValidation.js';
 import { autoCreateSessionsForToday } from './services/sessionService.js';
 import { purgeOldAuditLog } from './services/retentionService.js';
+import { runAdditiveMigrations } from './db/runAdditiveMigrations.js';
 import authRoutes from './routes/auth.js';
 import iotRoutes from './routes/iot.js';
 import sessionRoutes from './routes/sessions.js';
@@ -149,8 +150,16 @@ if (env.NODE_ENV === 'production') {
   }
 }
 
-httpServer.listen(env.PORT, () => {
-  console.log(`CLIRDEC backend listening on port ${env.PORT}`);
-});
+// Run additive migrations on startup (last_seen_at, audit_log) so app works if db:migrate wasn't run
+runAdditiveMigrations()
+  .then(() => {
+    httpServer.listen(env.PORT, () => {
+      console.log(`CLIRDEC backend listening on port ${env.PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('Startup failed:', err);
+    process.exit(1);
+  });
 
 export { wsBroadcast };
