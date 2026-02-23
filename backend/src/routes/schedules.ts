@@ -15,18 +15,24 @@ const createScheduleSchema = z.object({
   end_time: z.string().regex(/^\d{2}:\d{2}/),
   day_of_week: z.number().min(0).max(6),
   faculty_id: z.string().uuid(),
+  classroom_id: z.string().uuid().optional(),
+  subject_id: z.string().uuid().optional(),
 });
 
 router.get('/', requireRoles('admin', 'faculty'), async (req, res) => {
   const user = (req as import('../middleware/auth.js').AuthRequest).user;
+  const base = `SELECT s.*, u.full_name AS faculty_name,
+    cl.name AS classroom_name, sub.code AS subject_code, sub.name AS subject_name
+    FROM schedules s
+    JOIN users u ON u.id = s.faculty_id
+    LEFT JOIN classrooms cl ON cl.id = s.classroom_id
+    LEFT JOIN subjects sub ON sub.id = s.subject_id`;
   if (user.role === 'admin') {
-    const result = await pool.query(
-      `SELECT s.*, u.full_name AS faculty_name FROM schedules s JOIN users u ON u.id = s.faculty_id ORDER BY s.day_of_week, s.start_time`
-    );
+    const result = await pool.query(`${base} ORDER BY s.day_of_week, s.start_time`);
     return res.json(result.rows);
   }
   const result = await pool.query(
-    `SELECT s.*, u.full_name AS faculty_name FROM schedules s JOIN users u ON u.id = s.faculty_id WHERE s.faculty_id = $1 ORDER BY s.day_of_week, s.start_time`,
+    `${base} WHERE s.faculty_id = $1 ORDER BY s.day_of_week, s.start_time`,
     [user.userId]
   );
   res.json(result.rows);
@@ -39,8 +45,8 @@ router.post('/', requireRoles('admin'), async (req, res) => {
     return;
   }
   const insert = await pool.query(
-    `INSERT INTO schedules (subject, room, start_time, end_time, day_of_week, faculty_id)
-     VALUES ($1, $2, $3, $4, $5, $6)
+    `INSERT INTO schedules (subject, room, start_time, end_time, day_of_week, faculty_id, classroom_id, subject_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      RETURNING *`,
     [
       parsed.data.subject,
@@ -49,6 +55,8 @@ router.post('/', requireRoles('admin'), async (req, res) => {
       parsed.data.end_time,
       parsed.data.day_of_week,
       parsed.data.faculty_id,
+      parsed.data.classroom_id ?? null,
+      parsed.data.subject_id ?? null,
     ]
   );
   const row = insert.rows[0];

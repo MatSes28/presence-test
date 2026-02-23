@@ -8,6 +8,9 @@ const navItems: { to: string; label: string; roles?: ('admin' | 'faculty')[] }[]
   { to: '/schedules', label: 'Schedules', roles: ['admin'] },
   { to: '/users', label: 'User Management', roles: ['admin'] },
   { to: '/iot-devices', label: 'IoT Devices', roles: ['admin'] },
+  { to: '/classrooms', label: 'Classrooms', roles: ['admin'] },
+  { to: '/subjects', label: 'Subjects', roles: ['admin'] },
+  { to: '/lab-computers', label: 'Lab Computers', roles: ['admin', 'faculty'] },
 ];
 
 function getPageTitle(pathname: string): string {
@@ -16,6 +19,9 @@ function getPageTitle(pathname: string): string {
   if (pathname.startsWith('/schedules')) return 'Schedules';
   if (pathname.startsWith('/users')) return 'User Management';
   if (pathname.startsWith('/iot-devices')) return 'IoT Devices';
+  if (pathname.startsWith('/classrooms')) return 'Classrooms';
+  if (pathname.startsWith('/subjects')) return 'Subjects';
+  if (pathname.startsWith('/lab-computers')) return 'Lab Computers';
   if (pathname.startsWith('/attendance')) return 'Attendance Report';
   return 'Dashboard';
 }

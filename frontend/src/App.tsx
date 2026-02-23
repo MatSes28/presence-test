@@ -8,6 +8,9 @@ import Schedules from './pages/Schedules';
 import Users from './pages/Users';
 import AttendanceReport from './pages/AttendanceReport';
 import IotDevices from './pages/IotDevices';
+import Classrooms from './pages/Classrooms';
+import Subjects from './pages/Subjects';
+import LabComputers from './pages/LabComputers';
 import Privacy from './pages/Privacy';
 import MyAttendance from './pages/MyAttendance';
 import ForgotPassword from './pages/ForgotPassword';
@@ -41,6 +44,9 @@ export default function App() {
         <Route path="schedules" element={<PrivateRoute roles={['admin']}><Schedules /></PrivateRoute>} />
         <Route path="users" element={<PrivateRoute roles={['admin']}><Users /></PrivateRoute>} />
         <Route path="iot-devices" element={<PrivateRoute roles={['admin']}><IotDevices /></PrivateRoute>} />
+        <Route path="classrooms" element={<PrivateRoute roles={['admin']}><Classrooms /></PrivateRoute>} />
+        <Route path="subjects" element={<PrivateRoute roles={['admin']}><Subjects /></PrivateRoute>} />
+        <Route path="lab-computers" element={<PrivateRoute roles={['admin', 'faculty']}><LabComputers /></PrivateRoute>} />
         <Route path="attendance/:sessionId" element={<AttendanceReport />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

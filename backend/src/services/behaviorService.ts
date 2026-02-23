@@ -109,3 +109,25 @@ export async function shouldSendBehaviorAlert(userId: string): Promise<boolean> 
   );
   return recent.rows.length === 0;
 }
+
+/** Get list of at-risk (critical) student IDs with summary for sending alerts. */
+export async function getAtRiskStudentsForAlerts(): Promise<
+  Array<{ userId: string; full_name: string; attendanceRate: number; level: string }>
+> {
+  const students = await pool.query(
+    `SELECT id, full_name FROM users WHERE role = 'student' ORDER BY full_name`
+  );
+  const result: Array<{ userId: string; full_name: string; attendanceRate: number; level: string }> = [];
+  for (const s of students.rows) {
+    const summary = await getStudentAttendanceSummary(s.id);
+    if (summary.level === 'critical' && summary.totalSessions >= 1) {
+      result.push({
+        userId: s.id,
+        full_name: s.full_name,
+        attendanceRate: summary.attendanceRate,
+        level: summary.level,
+      });
+    }
+  }
+  return result;
+}

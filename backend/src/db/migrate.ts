@@ -29,6 +29,14 @@ async function migrate() {
   if (fs.existsSync(optionalPath)) {
     await pool.query(fs.readFileSync(optionalPath, 'utf-8'));
   }
+  const classroomsFkPath = path.join(__dirname, 'schema-classrooms-subjects-fk.sql');
+  if (fs.existsSync(classroomsFkPath)) {
+    await pool.query(fs.readFileSync(classroomsFkPath, 'utf-8'));
+  }
+  const labComputersPath = path.join(__dirname, 'schema-lab-computers.sql');
+  if (fs.existsSync(labComputersPath)) {
+    await pool.query(fs.readFileSync(labComputersPath, 'utf-8'));
+  }
   console.log('Migration completed.');
   process.exit(0);
 }

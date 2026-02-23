@@ -13,6 +13,8 @@ import cron from 'node-cron';
 import { ingestAttendance } from './services/attendanceValidation.js';
 import { autoCreateSessionsForNextDays } from './services/sessionService.js';
 import { purgeOldAuditLog } from './services/retentionService.js';
+import { getAtRiskStudentsForAlerts, shouldSendBehaviorAlert } from './services/behaviorService.js';
+import { getGuardianEmail, sendBehaviorAlertEmail, recordBehaviorAlert } from './services/notificationService.js';
 import { runAdditiveMigrations } from './db/runAdditiveMigrations.js';
 import { pool } from './db/pool.js';
 import bcrypt from 'bcryptjs';
@@ -24,6 +26,9 @@ import scheduleRoutes from './routes/schedules.js';
 import userRoutes from './routes/users.js';
 import discrepancyRoutes from './routes/discrepancy.js';
 import behaviorRoutes from './routes/behavior.js';
+import classroomRoutes from './routes/classrooms.js';
+import subjectRoutes from './routes/subjects.js';
+import computerRoutes from './routes/computers.js';
 import cookieParser from 'cookie-parser';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -83,6 +88,9 @@ app.use('/api/schedules', scheduleRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/discrepancy-flags', discrepancyRoutes);
 app.use('/api/behavior', behaviorRoutes);
+app.use('/api/classrooms', classroomRoutes);
+app.use('/api/subjects', subjectRoutes);
+app.use('/api/computers', computerRoutes);
 
 // Health: basic + DB check for load balancers and monitoring
 app.get('/health', async (_req, res) => {
@@ -177,6 +185,34 @@ if (env.AUDIT_RETENTION_DAYS > 0) {
     }
   });
 }
+
+// Cron: behavior alerts to guardians (daily at 8 AM). Requires RESEND_API_KEY and EMAIL_FROM.
+async function runBehaviorAlerts(): Promise<void> {
+  const atRisk = await getAtRiskStudentsForAlerts();
+  let sent = 0;
+  for (const student of atRisk) {
+    if (!(await shouldSendBehaviorAlert(student.userId))) continue;
+    const guardianEmail = await getGuardianEmail(student.userId);
+    if (!guardianEmail) continue;
+    const ok = await sendBehaviorAlertEmail({
+      recipientEmail: guardianEmail,
+      studentName: student.full_name,
+      attendanceRate: student.attendanceRate,
+      level: student.level,
+    });
+    await recordBehaviorAlert({
+      userId: student.userId,
+      recipientEmail: guardianEmail,
+      status: ok ? 'sent' : 'failed',
+      payload: { attendanceRate: student.attendanceRate, level: student.level },
+    });
+    if (ok) sent++;
+  }
+  if (sent > 0) console.log(`[cron] Sent ${sent} behavior alert email(s) to guardians`);
+}
+cron.schedule('0 8 * * *', () => {
+  runBehaviorAlerts().catch((err) => console.error('[cron] Behavior alerts failed:', err));
+});
 
 // Production: warn if JWT_SECRET is default or weak
 if (env.NODE_ENV === 'production') {

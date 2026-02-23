@@ -2,7 +2,7 @@
 
 Attendance monitoring and classroom engagement system for **Central Luzon State University** — Department of Information Technology (DIT), College of Engineering (BSIT). Combines RFID identification with proximity (ultrasonic) verification to reduce ghost attendance and support real-time monitoring.
 
-See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for system architecture and spec alignment. For deployment and operations at scale, see **[docs/RUNBOOK.md](docs/RUNBOOK.md)** and **[docs/PRODUCTION_READINESS.md](docs/PRODUCTION_READINESS.md)**. For production secrets, see **[docs/SECRETS.md](docs/SECRETS.md)**.
+See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for system architecture and spec alignment. For deployment and operations at scale, see **[docs/RUNBOOK.md](docs/RUNBOOK.md)** and **[docs/PRODUCTION_READINESS.md](docs/PRODUCTION_READINESS.md)**. For production secrets, see **[docs/SECRETS.md](docs/SECRETS.md)**. For data retention policy, see **[docs/DATA_RETENTION.md](docs/DATA_RETENTION.md)**. For SLA and high availability, see **[docs/SLA_HA.md](docs/SLA_HA.md)**. Before going live, run **`npm run preflight`** to validate environment and checklist.
 
 ## Features
 

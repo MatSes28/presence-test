@@ -15,7 +15,18 @@ export type AuditAction =
   | 'session_end'
   | 'iot_device_create'
   | 'iot_device_update'
-  | 'iot_device_delete';
+  | 'iot_device_delete'
+  | 'classroom_create'
+  | 'classroom_update'
+  | 'classroom_delete'
+  | 'subject_create'
+  | 'subject_update'
+  | 'subject_delete'
+  | 'computer_create'
+  | 'computer_update'
+  | 'computer_delete'
+  | 'computer_assign'
+  | 'computer_release';
 
 export interface AuditEntry {
   actorId?: string | null;

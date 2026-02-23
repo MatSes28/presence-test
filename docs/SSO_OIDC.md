@@ -4,10 +4,10 @@ For institution-wide deployment, many universities use **Single Sign-On (SSO)** 
 
 ---
 
-## Current state
+## Current state (implemented)
 
 - **Local login:** `POST /api/auth/login` with email + password; JWT and HTTP-only cookie.
-- **SSO:** Implemented. When `OIDC_ISSUER`, `OIDC_CLIENT_ID`, and `OIDC_REDIRECT_URI` are set:
+- **SSO (OIDC):** **Implemented.** When `OIDC_ISSUER`, `OIDC_CLIENT_ID`, and `OIDC_REDIRECT_URI` are set:
   - `GET /api/auth/config` returns `{ ssoEnabled: true }` (for login page).
   - `GET /api/auth/oidc` redirects to IdP; `GET /api/auth/oidc/callback` exchanges code, finds or creates user (`OIDC_CREATE_USER=1` to allow auto-create), sets session cookie, redirects to `/`.
   - Login page shows "Sign in with SSO" when SSO is enabled.
@@ -42,4 +42,4 @@ Discovery: `GET {OIDC_ISSUER}/.well-known/openid-configuration` for `authorizati
 
 ## Summary
 
-SSO is **not** implemented in the current codebase. Use this as a guide when you add OIDC routes and a “Sign in with SSO” flow; keep issuing the same JWT/cookie so the rest of the app (sessions, attendance, reports) is unchanged.
+SSO **is** implemented in the current codebase. Configure the env vars above and register the callback URL with your IdP. When adding OIDC routes and a “Sign in with SSO” flow; keep issuing the same JWT/cookie so the rest of the app (sessions, attendance, reports) is unchanged.

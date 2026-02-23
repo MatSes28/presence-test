@@ -18,12 +18,26 @@ interface ScheduleRow {
   day_of_week: number;
   faculty_id: string;
   faculty_name: string;
+  classroom_name?: string | null;
+  subject_code?: string | null;
+  subject_name?: string | null;
 }
 
 interface UserOption {
   id: string;
   full_name: string;
   role: string;
+}
+
+interface ClassroomOption {
+  id: string;
+  name: string;
+  capacity: number | null;
+}
+interface SubjectOption {
+  id: string;
+  code: string;
+  name: string;
 }
 
 export default function Schedules() {
@@ -39,18 +53,26 @@ export default function Schedules() {
     end_time: '09:00',
     day_of_week: 1,
     faculty_id: '',
+    classroom_id: '' as string,
+    subject_id: '' as string,
   });
+  const [classrooms, setClassrooms] = useState<ClassroomOption[]>([]);
+  const [subjects, setSubjects] = useState<SubjectOption[]>([]);
 
   useEffect(() => {
     setError(null);
     Promise.all([
       api.get<ScheduleRow[]>('/api/schedules'),
       api.get<UserOption[]>('/api/users'),
+      api.get<ClassroomOption[]>('/api/classrooms').catch(() => []),
+      api.get<SubjectOption[]>('/api/subjects').catch(() => []),
     ])
-      .then(([sched, users]) => {
+      .then(([sched, users, classList, subjList]) => {
         setSchedules(sched);
         const facultyList = users.filter((u) => u.role === 'faculty' || u.role === 'admin');
         setFaculty(facultyList);
+        setClassrooms(classList);
+        setSubjects(subjList);
         if (facultyList.length && !form.faculty_id) setForm((f) => ({ ...f, faculty_id: facultyList[0].id }));
       })
       .catch((err) => {
@@ -64,10 +86,14 @@ export default function Schedules() {
     e.preventDefault();
     if (user?.role !== 'admin') return;
     try {
-      await api.post('/api/schedules', form);
+      await api.post('/api/schedules', {
+        ...form,
+        classroom_id: form.classroom_id || undefined,
+        subject_id: form.subject_id || undefined,
+      });
       const list = await api.get<ScheduleRow[]>('/api/schedules');
       setSchedules(list);
-      setForm({ subject: '', room: '', start_time: '08:00', end_time: '09:00', day_of_week: 1, faculty_id: form.faculty_id });
+      setForm({ subject: '', room: '', start_time: '08:00', end_time: '09:00', day_of_week: 1, faculty_id: form.faculty_id, classroom_id: '', subject_id: '' });
     } catch (err) {
       alert((err as Error).message);
     }
@@ -139,6 +165,30 @@ export default function Schedules() {
                   <option key={u.id} value={u.id}>{u.full_name}</option>
                 ))}
               </Select>
+              {classrooms.length > 0 && (
+                <Select
+                  value={form.classroom_id}
+                  onChange={(e) => setForm((f) => ({ ...f, classroom_id: e.target.value }))}
+                  className="min-w-[140px]"
+                >
+                  <option value="">Room (optional)</option>
+                  {classrooms.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </Select>
+              )}
+              {subjects.length > 0 && (
+                <Select
+                  value={form.subject_id}
+                  onChange={(e) => setForm((f) => ({ ...f, subject_id: e.target.value }))}
+                  className="min-w-[160px]"
+                >
+                  <option value="">Subject (optional)</option>
+                  {subjects.map((s) => (
+                    <option key={s.id} value={s.id}>{s.code} – {s.name}</option>
+                  ))}
+                </Select>
+              )}
               <Button type="submit">Add</Button>
             </form>
           </CardContent>
@@ -160,16 +210,20 @@ export default function Schedules() {
                 <th>Day</th>
                 <th>Time</th>
                 <th>Faculty</th>
+                {(classrooms.length > 0 || subjects.length > 0) && <th>Classroom / Subject</th>}
               </tr>
             </thead>
             <tbody>
               {schedules.map((s) => (
                 <tr key={s.id}>
-                  <td>{s.subject}</td>
-                  <td>{s.room}</td>
+                  <td>{s.subject_name ?? s.subject}</td>
+                  <td>{s.classroom_name ?? s.room}</td>
                   <td>{DAYS[s.day_of_week]}</td>
                   <td>{s.start_time} – {s.end_time}</td>
                   <td>{s.faculty_name}</td>
+                  {(classrooms.length > 0 || subjects.length > 0) && (
+                    <td>{(s.classroom_name || s.subject_code) ? `${s.classroom_name ?? ''} ${s.subject_code ?? ''}`.trim() : '—'}</td>
+                  )}
                 </tr>
               ))}
             </tbody>

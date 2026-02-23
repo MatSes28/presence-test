@@ -95,6 +95,7 @@ Use this as a pre-launch list for a **department or pilot** deployment.
 - [ ] **IoT (if used):** Register devices in the app; consider enforcing device auth on `/api/iot/attendance`.
 - [ ] **Monitoring:** At least health checks (e.g. `GET /health`) and alerting on failure; optional logging/APM.
 - [ ] **Documentation:** Share README and ARCHITECTURE with ops; [RUNBOOK.md](RUNBOOK.md) covers migrate, backup, restore, audit, password reset, API docs; **SEED_ADMIN** is for CI only—do not use in production.
+- [ ] **Preflight:** Run `npm run preflight` to validate env (use `PREFLIGHT_STRICT=1` in CI to fail on missing/weak secrets).
 
 ---
 
