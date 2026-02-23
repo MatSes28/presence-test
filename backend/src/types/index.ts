@@ -30,7 +30,7 @@ export interface ClassSession {
   schedule_id: string;
   started_at: string;
   ended_at: string | null;
-  status: 'active' | 'ended';
+  status: 'scheduled' | 'active' | 'ended';
 }
 
 export interface AttendanceEvent {

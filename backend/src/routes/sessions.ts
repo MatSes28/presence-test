@@ -103,9 +103,22 @@ router.post('/start', requireRoles('admin', 'faculty'), async (req, res) => {
       return res.status(403).json({ error: 'You can only start sessions for your own schedules' });
     }
   }
-  const insert = await pool.query(
-    `INSERT INTO class_sessions (schedule_id, status) VALUES ($1, 'active') RETURNING *`,
+  const scheduleRow = await pool.query(
+    'SELECT start_time FROM schedules WHERE id = $1',
     [schedule_id]
+  );
+  const startTime = scheduleRow.rows[0]?.start_time;
+  const now = new Date();
+  let startedAt = now;
+  if (startTime) {
+    const [h, m, s] = String(startTime).split(':').map(Number);
+    const todayStart = new Date(now);
+    todayStart.setHours(h ?? 0, m ?? 0, s ?? 0, 0);
+    if (todayStart.getTime() <= now.getTime()) startedAt = todayStart;
+  }
+  const insert = await pool.query(
+    `INSERT INTO class_sessions (schedule_id, status, started_at) VALUES ($1, 'active', $2) RETURNING *`,
+    [schedule_id, startedAt.toISOString()]
   );
   const sessionRow = insert.rows[0];
   await audit({

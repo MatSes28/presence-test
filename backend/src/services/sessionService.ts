@@ -5,26 +5,40 @@ export interface AutoCreateResult {
   sessionIds: string[];
 }
 
-/** Create class sessions for a given date based on schedules (day_of_week). Idempotent per schedule per date. */
+/**
+ * Build a Date for the given calendar date at the given time string (HH:MM or HH:MM:SS).
+ * Uses the same date's year/month/day so the session "starts" at schedule start_time.
+ */
+function atTimeOnDate(date: Date, timeStr: string): Date {
+  const [h, m, s] = String(timeStr).split(':').map(Number);
+  const d = new Date(date);
+  d.setHours(h ?? 0, m ?? 0, s ?? 0, 0);
+  return d;
+}
+
+/** Create class sessions for a given date based on schedules (day_of_week). Idempotent per schedule per date.
+ * Each session's started_at is set to the schedule's start_time on that date so the IoT window is time-based.
+ */
 export async function autoCreateSessionsForDate(date: Date): Promise<AutoCreateResult> {
   const dayOfWeek = date.getDay();
   const dayStart = new Date(date);
   dayStart.setHours(0, 0, 0, 0);
   const dayStartIso = dayStart.toISOString();
   const schedules = await pool.query(
-    'SELECT id FROM schedules WHERE day_of_week = $1',
+    'SELECT id, start_time, end_time FROM schedules WHERE day_of_week = $1',
     [dayOfWeek]
   );
   const sessionIds: string[] = [];
   for (const row of schedules.rows) {
     const existing = await pool.query(
-      `SELECT 1 FROM class_sessions WHERE schedule_id = $1 AND started_at >= $2 AND status = 'active'`,
+      `SELECT 1 FROM class_sessions WHERE schedule_id = $1 AND started_at >= $2 AND status IN ('scheduled', 'active')`,
       [row.id, dayStartIso]
     );
     if (existing.rows.length > 0) continue;
+    const startedAt = atTimeOnDate(dayStart, row.start_time);
     const insert = await pool.query(
-      `INSERT INTO class_sessions (schedule_id, status) VALUES ($1, 'active') RETURNING id`,
-      [row.id]
+      `INSERT INTO class_sessions (schedule_id, status, started_at) VALUES ($1, 'scheduled', $2) RETURNING id`,
+      [row.id, startedAt.toISOString()]
     );
     sessionIds.push(insert.rows[0].id);
   }

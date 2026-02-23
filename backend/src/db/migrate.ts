@@ -37,6 +37,10 @@ async function migrate() {
   if (fs.existsSync(labComputersPath)) {
     await pool.query(fs.readFileSync(labComputersPath, 'utf-8'));
   }
+  const lifecyclePath = path.join(__dirname, 'schema-session-lifecycle.sql');
+  if (fs.existsSync(lifecyclePath)) {
+    await pool.query(fs.readFileSync(lifecyclePath, 'utf-8'));
+  }
   console.log('Migration completed.');
   process.exit(0);
 }

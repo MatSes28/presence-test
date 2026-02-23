@@ -12,6 +12,7 @@ import { attachIotWebSocket } from './websocket/iot.js';
 import cron from 'node-cron';
 import { ingestAttendance } from './services/attendanceValidation.js';
 import { autoCreateSessionsForNextDays } from './services/sessionService.js';
+import { runSessionLifecycle } from './services/sessionLifecycleService.js';
 import { purgeOldAuditLog } from './services/retentionService.js';
 import { getAtRiskStudentsForAlerts, shouldSendBehaviorAlert } from './services/behaviorService.js';
 import { getGuardianEmail, sendBehaviorAlertEmail, recordBehaviorAlert } from './services/notificationService.js';
@@ -157,13 +158,13 @@ attachIotWebSocket(httpServer, async (payload) => {
   }
 });
 
-// Cron: auto-create sessions (e.g. 6:00 AM daily). SESSION_CREATE_DAYS = how many days ahead (default 1 = today).
+// Cron: auto-create sessions (e.g. 6:00 AM daily). Creates sessions with status "scheduled"; lifecycle cron activates them.
 if (env.AUTO_SESSION_CRON) {
   cron.schedule(env.AUTO_SESSION_CRON, async () => {
     try {
       const result = await autoCreateSessionsForNextDays(env.SESSION_CREATE_DAYS);
       if (result.created > 0) {
-        console.log(`[cron] Auto-created ${result.created} session(s) for next ${env.SESSION_CREATE_DAYS} day(s)`);
+        console.log(`[cron] Auto-created ${result.created} session(s) (scheduled) for next ${env.SESSION_CREATE_DAYS} day(s)`);
       }
     } catch (err) {
       console.error('[cron] Auto session create failed:', err);
@@ -171,6 +172,18 @@ if (env.AUTO_SESSION_CRON) {
   });
   console.log(`Auto session cron enabled: ${env.AUTO_SESSION_CRON} (create ${env.SESSION_CREATE_DAYS} day(s) ahead)`);
 }
+
+// Cron: every minute — activate scheduled sessions when start time reached, end active when end time reached, mark absent.
+cron.schedule('* * * * *', async () => {
+  try {
+    const { activated, ended, absentMarked } = await runSessionLifecycle();
+    if (activated > 0 || ended > 0 || absentMarked > 0) {
+      console.log(`[cron] Session lifecycle: ${activated} activated, ${ended} ended, ${absentMarked} absent marked`);
+    }
+  } catch (err) {
+    console.error('[cron] Session lifecycle failed:', err);
+  }
+});
 
 // Cron: purge old audit log (daily at 3 AM). AUDIT_RETENTION_DAYS=0 to disable.
 if (env.AUDIT_RETENTION_DAYS > 0) {

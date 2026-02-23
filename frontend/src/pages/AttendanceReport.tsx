@@ -29,6 +29,7 @@ interface AttendanceRow {
 interface SessionStats {
   presentCount: number;
   lateCount: number;
+  absentCount?: number;
   totalRecorded: number;
 }
 
@@ -109,7 +110,8 @@ export default function AttendanceReport() {
             <div className="flex gap-4 text-sm">
               <span>Present: <strong>{stats.presentCount}</strong></span>
               <span>Late: <strong>{stats.lateCount}</strong></span>
-              <span>Total recorded: <strong>{stats.totalRecorded}</strong></span>
+              {(stats.absentCount ?? 0) > 0 && <span>Absent: <strong>{stats.absentCount}</strong></span>}
+              <span>Total: <strong>{stats.totalRecorded}</strong></span>
             </div>
           </CardContent>
         )}
@@ -143,8 +145,8 @@ export default function AttendanceReport() {
                   <tr key={a.id}>
                     <td>{a.full_name}</td>
                     <td>{a.email}</td>
-                    <td><span className={a.attendance_status === 'late' ? styles.statusLate : styles.statusPresent}>{a.attendance_status === 'late' ? 'Late' : 'Present'}</span></td>
-                    <td>{new Date(a.recorded_at).toLocaleTimeString()}</td>
+                    <td><span className={a.attendance_status === 'late' ? styles.statusLate : a.attendance_status === 'absent' ? styles.statusAbsent : styles.statusPresent}>{a.attendance_status === 'late' ? 'Late' : a.attendance_status === 'absent' ? 'Absent' : 'Present'}</span></td>
+                    <td>{a.attendance_status === 'absent' ? '—' : new Date(a.recorded_at).toLocaleTimeString()}</td>
                     <td>{a.distance_cm != null ? a.distance_cm : '—'}</td>
                   </tr>
                 ))}

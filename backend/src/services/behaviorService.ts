@@ -81,9 +81,10 @@ export async function getStudentAttendanceSummary(
   let lateCount = 0;
   for (const e of events.rows) {
     if (e.attendance_status === 'late') lateCount++;
-    else presentCount++;
+    else if (e.attendance_status === 'present') presentCount++;
+    // 'absent' or other: count as absent for rate
   }
-  const absentCount = totalSessions - events.rows.length;
+  const absentCount = totalSessions - presentCount - lateCount;
   const attendanceRate = totalSessions === 0 ? 100 : ((presentCount + 0.5 * lateCount) / totalSessions) * 100;
   const level = getLevelFromRate(attendanceRate, config);
 

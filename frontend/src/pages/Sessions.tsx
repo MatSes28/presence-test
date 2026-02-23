@@ -70,12 +70,14 @@ export default function Sessions() {
   if (loading) return <p className="text-[var(--text-muted)]">Loading…</p>;
 
   const active = sessList.filter((s) => s.status === 'active');
+  const scheduled = sessList.filter((s) => s.status === 'scheduled');
+  const statusLabel = (status: string) => (status === 'scheduled' ? 'Scheduled' : status === 'active' ? 'Active' : 'Completed');
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold text-[var(--text)] tracking-tight">Class sessions</h1>
-        <p className="mt-1 text-sm text-[var(--text-secondary)]">Start and end sessions for attendance recording.</p>
+        <p className="mt-1 text-sm text-[var(--text-secondary)]">Scheduled sessions auto-activate at start time and auto-complete at end time. You can also start or end sessions manually.</p>
       </div>
 
       <Card>
@@ -107,10 +109,31 @@ export default function Sessions() {
         </CardContent>
       </Card>
 
+      {scheduled.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Scheduled (upcoming)</CardTitle>
+            <CardDescription>These sessions will activate automatically at their start time.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              {scheduled.slice(0, 10).map((s) => (
+                <li key={s.id} className="flex items-center gap-3 p-3 rounded-lg border border-[var(--border)] bg-[var(--bg)]">
+                  <strong>{s.subject}</strong> — {s.room}
+                  <span className="text-xs text-[var(--text-muted)]">
+                    {new Date(s.started_at).toLocaleString()} · {s.faculty_name}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Active sessions</CardTitle>
-          <CardDescription>Sessions currently open for check-ins.</CardDescription>
+          <CardDescription>Live sessions: dashboard and ESP32 accept taps now.</CardDescription>
         </CardHeader>
         <CardContent>
           {active.length === 0 ? (
@@ -149,8 +172,8 @@ export default function Sessions() {
               <li key={s.id} className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg border border-[var(--border)] bg-[var(--bg)]">
                 <div>
                   <strong>{s.subject}</strong> — {s.room}
-                  <span className={`ml-2 text-xs px-2 py-0.5 rounded ${s.status === 'active' ? 'bg-[var(--success)]/20 text-[var(--success)]' : 'bg-[var(--text-muted)]/20'}`}>
-                    {s.status}
+                  <span className={`ml-2 text-xs px-2 py-0.5 rounded ${s.status === 'active' ? 'bg-[var(--success)]/20 text-[var(--success)]' : s.status === 'scheduled' ? 'bg-[var(--accent)]/20 text-[var(--accent)]' : 'bg-[var(--text-muted)]/20'}`}>
+                    {statusLabel(s.status)}
                   </span>
                   <div className="text-sm text-[var(--text-muted)]">
                     {new Date(s.started_at).toLocaleString()}

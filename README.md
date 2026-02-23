@@ -84,7 +84,8 @@ ESP32-S3 units connect to the same network (WiFi) as the server and send attenda
 ```
 
 - If `session_id` is omitted, the current **active** session is used (one active session at a time).
-- Attendance is accepted only when the card is registered, proximity is within the configured range, and the session is active. Duplicate scans for the same user in the same session are ignored.
+- **Time-based:** Sessions are “active” for IoT only during the schedule’s **start_time–end_time** window on the session date. The cron creates sessions with `started_at` set to the schedule’s start time, so taps are accepted only in that window and present/late are computed from the official start.
+- Attendance is accepted only when the card is registered, proximity is within the configured range, and the session is active in that time window. Duplicate scans for the same user in the same session are ignored.
 - **IoT device registry:** Admins can register devices at **IoT devices** in the app. When `device_id` is sent with attendance, the device’s `last_seen_at` is updated for health monitoring. For production hardening, set `IOT_REQUIRE_DEVICE_AUTH=1` so devices must send `device_id` and `X-IoT-API-Key` (or `api_key` in body).
 
 ## Deployment on Railway

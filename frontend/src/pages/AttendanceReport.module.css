@@ -73,6 +73,11 @@
   font-weight: 500;
 }
 
+.statusAbsent {
+  color: var(--error);
+  font-weight: 500;
+}
+
 .section {
   background: var(--surface);
   border: 1px solid var(--border);

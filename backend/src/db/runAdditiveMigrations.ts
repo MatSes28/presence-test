@@ -85,6 +85,22 @@ export async function runAdditiveMigrations(): Promise<void> {
     `);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_computer_assignments_user ON computer_assignments(user_id)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_computer_assignments_computer ON computer_assignments(computer_id)`);
+
+    // Session lifecycle: scheduled -> active -> ended; attendance_status 'absent'
+    try {
+      await client.query(`ALTER TABLE class_sessions DROP CONSTRAINT IF EXISTS class_sessions_status_check`);
+      await client.query(`ALTER TABLE class_sessions ADD CONSTRAINT class_sessions_status_check CHECK (status IN ('scheduled', 'active', 'ended'))`);
+    } catch (e: unknown) {
+      const err = e as { code?: string };
+      if (err?.code !== '42P01') throw e;
+    }
+    try {
+      await client.query(`ALTER TABLE attendance_events DROP CONSTRAINT IF EXISTS attendance_events_attendance_status_check`);
+      await client.query(`ALTER TABLE attendance_events ADD CONSTRAINT attendance_events_attendance_status_check CHECK (attendance_status IN ('present', 'late', 'absent'))`);
+    } catch (e: unknown) {
+      const err = e as { code?: string };
+      if (err?.code !== '42P01') throw e;
+    }
   } finally {
     client.release();
   }

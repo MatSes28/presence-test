@@ -127,11 +127,18 @@ export async function validateAndRecordAttendance(
 }
 
 /**
- * Find active session for a room/device (optional: by schedule and time window).
+ * Find active session for a room/device. Returns a session only when current time is within
+ * the schedule's start_time–end_time window for that session date (time-based: IoT accepts
+ * taps only during the scheduled class period).
  */
 export async function getActiveSessionForDevice(deviceId?: string): Promise<string | null> {
   const result = await pool.query(
-    `SELECT id FROM class_sessions WHERE status = 'active' ORDER BY started_at DESC LIMIT 1`
+    `SELECT cs.id FROM class_sessions cs
+     JOIN schedules s ON s.id = cs.schedule_id
+     WHERE cs.status = 'active'
+       AND NOW() >= cs.started_at
+       AND NOW() < cs.started_at + (s.end_time - s.start_time)
+     ORDER BY cs.started_at DESC LIMIT 1`
   );
   if (result.rows.length === 0) return null;
   return result.rows[0].id;

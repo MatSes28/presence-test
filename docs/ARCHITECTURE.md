@@ -41,7 +41,10 @@ Attendance monitoring and classroom engagement system for **Central Luzon State 
 - CSV export for attendance reports
 - **IoT WebSocket** — `/iot` for devices (heartbeat, attendance); REST `/api/iot/attendance` still supported
 - **Guardian contact** — `guardian_email` on users (students); `email_notifications` table; real email via Resend when `RESEND_API_KEY` and `EMAIL_FROM` are set
-- **Auto session creation** — `POST /api/sessions/auto-create` (admin) creates sessions; cron uses `SESSION_CREATE_DAYS` (default 1). Body `{ days: 1–31 }` for multi-day.
+- **Auto session creation** — Cron creates sessions with status **Scheduled** and `started_at` = schedule start time on that date. A **per-minute scheduler** activates them when the current time reaches the schedule start time (status → **Active**) and auto-completes them when end time is reached (status → **Completed** / ended). No manual activation required unless faculty start/end sessions manually.
+- **Time-based IoT window** — ESP32 taps are accepted only when there is an **active** session and the current time is within the schedule’s start time–end time window. Present/Late are computed from the schedule start time (grace period, late cutoff).
+- **Auto-absent** — When a session is auto-completed, any student with an RFID card who has no attendance event for that session is marked **Absent** (system-inserted attendance_event with `attendance_status = 'absent'`).
+- **Guardian / behavior alerts** — Resend sends guardian emails on attendance and daily behavior alerts for at-risk students (with cooldown).
 
 ---
 

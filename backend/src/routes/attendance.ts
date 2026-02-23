@@ -61,8 +61,9 @@ router.get('/session/:sessionId/stats', requireRoles('admin', 'faculty'), async 
   }
   const counts = await pool.query(
     `SELECT
-       COUNT(*) FILTER (WHERE COALESCE(attendance_status, 'present') = 'present') AS present_count,
+       COUNT(*) FILTER (WHERE attendance_status = 'present') AS present_count,
        COUNT(*) FILTER (WHERE attendance_status = 'late') AS late_count,
+       COUNT(*) FILTER (WHERE attendance_status = 'absent') AS absent_count,
        COUNT(*) AS total_recorded
      FROM attendance_events WHERE session_id = $1`,
     [sessionId]
@@ -71,6 +72,7 @@ router.get('/session/:sessionId/stats', requireRoles('admin', 'faculty'), async 
   res.json({
     presentCount: parseInt(String(row?.present_count ?? 0), 10),
     lateCount: parseInt(String(row?.late_count ?? 0), 10),
+    absentCount: parseInt(String(row?.absent_count ?? 0), 10),
     totalRecorded: parseInt(String(row?.total_recorded ?? 0), 10),
   });
 });
