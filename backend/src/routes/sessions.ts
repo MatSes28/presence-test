@@ -10,6 +10,14 @@ import { audit, getClientIp } from '../services/auditService.js';
 const router = Router();
 router.use(authMiddleware);
 
+/** Server time so frontend can match "today" and day-of-week with backend (time-based logic). */
+router.get('/server-time', (_req, res) => {
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const date = now.toISOString().slice(0, 10);
+  res.json({ dayOfWeek, date });
+});
+
 const createSessionSchema = z.object({ schedule_id: z.string().uuid() });
 const endSessionSchema = z.object({ session_id: z.string().uuid() });
 

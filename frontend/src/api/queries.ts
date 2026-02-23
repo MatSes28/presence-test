@@ -3,6 +3,7 @@ import { api } from './client';
 export const queryKeys = {
   sessions: ['sessions'] as const,
   schedules: ['schedules'] as const,
+  serverTime: ['serverTime'] as const,
   students: ['students'] as const,
   users: ['users'] as const,
   iotDevices: ['iot', 'devices'] as const,
@@ -10,6 +11,10 @@ export const queryKeys = {
   sessionStats: (sessionId: string) => ['attendance', 'session', sessionId, 'stats'] as const,
   atRisk: ['behavior', 'at-risk'] as const,
 };
+
+export async function fetchServerTime(): Promise<{ dayOfWeek: number; date: string }> {
+  return api.get<{ dayOfWeek: number; date: string }>('/api/sessions/server-time');
+}
 
 export async function fetchSessions() {
   return api.get<Array<Record<string, unknown>>>('/api/sessions');

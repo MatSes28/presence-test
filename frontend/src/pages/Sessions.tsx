@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
-import { queryKeys, fetchSessions, fetchSchedules } from '../api/queries';
+import { queryKeys, fetchSessions, fetchSchedules, fetchServerTime } from '../api/queries';
 import { Button, buttonVariants } from '../components/ui/button';
 import { Select } from '../components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
@@ -41,6 +41,11 @@ export default function Sessions() {
   const { data: schedules = [] } = useQuery({
     queryKey: queryKeys.schedules,
     queryFn: fetchSchedules,
+  });
+  const { data: serverTime } = useQuery({
+    queryKey: queryKeys.serverTime,
+    queryFn: fetchServerTime,
+    refetchInterval: 60_000,
   });
   const schedList = schedules as ScheduleOption[];
   const sessList = sessions as SessionRow[];
@@ -83,19 +88,24 @@ export default function Sessions() {
   const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const selectedScheduleData = schedList.find((s) => s.id === selectedSchedule);
   const now = new Date();
-  const todayDay = now.getDay();
+  const serverDate = serverTime?.date ?? now.toISOString().slice(0, 10);
+  const todayDay = serverTime?.dayOfWeek ?? now.getDay();
   const ONE_MINUTE_MS = 60 * 1000;
-  // Manual start only for today's schedule, and only when scheduled start has passed by at least 1 minute (recovery). Otherwise system is fully time-based/automatic.
+  const hasSessionToday = selectedSchedule && sessList.some(
+    (s) => s.schedule_id === selectedSchedule && (s.started_at?.slice(0, 10) === serverDate)
+  );
+  // Manual start only for today's schedule (server time), and only when scheduled start has passed by at least 1 minute (recovery). No second session per day.
   const cannotStartManually = (() => {
     if (!selectedScheduleData) return true;
-    if (selectedScheduleData.day_of_week !== todayDay) return true; // not today — sessions auto-create for the schedule's day only
+    if (hasSessionToday) return true;
+    if (selectedScheduleData.day_of_week !== todayDay) return true;
     const [h, m] = String(selectedScheduleData.start_time).split(':').map(Number);
     const startToday = new Date(now);
     startToday.setHours(h ?? 0, m ?? 0, 0, 0);
     const startMs = startToday.getTime();
     const nowMs = now.getTime();
-    if (startMs > nowMs) return true; // future — will auto-start
-    if (nowMs - startMs < ONE_MINUTE_MS) return true; // at or within 1 min of start — auto-start handles it
+    if (startMs > nowMs) return true;
+    if (nowMs - startMs < ONE_MINUTE_MS) return true;
     return false;
   })();
   const formatTime = (timeStr: string) => {
@@ -140,9 +150,11 @@ export default function Sessions() {
           </div>
           {cannotStartManually && selectedScheduleData && (
             <p className="mt-3 text-sm text-[var(--warning)]" role="alert">
-              {selectedScheduleData.day_of_week === todayDay
-                ? `This class is at ${formatTime(selectedScheduleData.start_time)}. It will start automatically at that time. Manual start is only for recovery after the scheduled time has passed (and no session exists).`
-                : `This schedule is for ${DAYS[selectedScheduleData.day_of_week]}. Sessions start automatically on that day; manual start is only for today's schedule (recovery).`}
+              {hasSessionToday
+                ? 'A session for this schedule already exists today (scheduled, active, or completed). You cannot start a second one.'
+                : selectedScheduleData.day_of_week === todayDay
+                  ? `This class is at ${formatTime(selectedScheduleData.start_time)}. It will start automatically at that time. Manual start is only for recovery after the scheduled time has passed (and no session exists).`
+                  : `This schedule is for ${DAYS[selectedScheduleData.day_of_week]}. Sessions start automatically on that day; manual start is only for today (server time).`}
             </p>
           )}
         </CardContent>
