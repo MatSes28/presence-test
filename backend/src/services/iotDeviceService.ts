@@ -19,6 +19,16 @@ export async function touchDeviceLastSeen(deviceId: string): Promise<void> {
   );
 }
 
+/** Verify device by device_id and API key (for world-class auth on attendance endpoint). */
+export async function verifyDeviceAuth(deviceId: string, apiKey: string): Promise<boolean> {
+  const r = await pool.query(
+    `SELECT api_key_hash FROM iot_devices WHERE device_id = $1 AND is_active = true`,
+    [deviceId]
+  );
+  if (r.rows.length === 0) return false;
+  return bcrypt.compare(apiKey, r.rows[0].api_key_hash);
+}
+
 /** List all registered devices (no API key). */
 export async function listDevices(): Promise<IoTDeviceRow[]> {
   const r = await pool.query(

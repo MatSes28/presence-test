@@ -6,6 +6,8 @@ export type AuditAction =
   | 'attendance_report_view'
   | 'attendance_export_csv'
   | 'user_create'
+  | 'user_bulk_import'
+  | 'user_delete'
   | 'schedule_create'
   | 'session_start'
   | 'session_end'

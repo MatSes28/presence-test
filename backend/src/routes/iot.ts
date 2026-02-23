@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { env } from '../config/env.js';
 import { ingestAttendance } from '../services/attendanceValidation.js';
 import { authMiddleware, requireRoles } from '../middleware/auth.js';
 import type { AuthRequest } from '../middleware/auth.js';
@@ -12,19 +13,32 @@ const payloadSchema = z.object({
   card_uid: z.string().min(1),
   proximity_cm: z.number().min(0),
   device_id: z.string().optional(),
+  api_key: z.string().optional(),
   session_id: z.string().uuid().optional(),
 });
 
 /**
  * IoT ingestion endpoint: ESP32 sends RFID + proximity data (REST).
  * If session_id is omitted, the current active session is used.
- * Devices can also use WebSocket /iot for attendance + heartbeat.
+ * When IOT_REQUIRE_DEVICE_AUTH=1, device_id and API key (X-IoT-API-Key header or body.api_key) are required.
  */
 router.post('/attendance', async (req, res) => {
   const parsed = payloadSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
     return;
+  }
+  const apiKey = (req.headers['x-iot-api-key'] as string) || parsed.data.api_key;
+  if (env.IOT_REQUIRE_DEVICE_AUTH) {
+    if (!parsed.data.device_id || !apiKey) {
+      res.status(401).json({ error: 'Device authentication required: device_id and X-IoT-API-Key (or api_key in body)' });
+      return;
+    }
+    const valid = await iotDeviceService.verifyDeviceAuth(parsed.data.device_id, apiKey);
+    if (!valid) {
+      res.status(401).json({ error: 'Invalid or inactive device credentials' });
+      return;
+    }
   }
   const result = await ingestAttendance(parsed.data);
   if (result.success && result.eventId) {

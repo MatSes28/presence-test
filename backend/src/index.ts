@@ -12,6 +12,7 @@ import { attachIotWebSocket } from './websocket/iot.js';
 import cron from 'node-cron';
 import { ingestAttendance } from './services/attendanceValidation.js';
 import { autoCreateSessionsForToday } from './services/sessionService.js';
+import { purgeOldAuditLog } from './services/retentionService.js';
 import authRoutes from './routes/auth.js';
 import iotRoutes from './routes/iot.js';
 import sessionRoutes from './routes/sessions.js';
@@ -75,7 +76,19 @@ app.use('/api/users', userRoutes);
 app.use('/api/discrepancy-flags', discrepancyRoutes);
 app.use('/api/behavior', behaviorRoutes);
 
-app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'clirdec-presence' }));
+// Health: basic + DB check for load balancers and monitoring
+app.get('/health', async (_req, res) => {
+  let db = 'unknown';
+  try {
+    const { pool } = await import('./db/pool.js');
+    await pool.query('SELECT 1');
+    db = 'up';
+  } catch {
+    db = 'down';
+  }
+  const status = db === 'up' ? 'ok' : 'degraded';
+  res.status(db === 'up' ? 200 : 503).json({ status, service: 'clirdec-presence', database: db });
+});
 
 // Production: serve frontend static files and SPA fallback
 const publicDir = path.join(__dirname, '..', 'public');
@@ -107,6 +120,20 @@ if (env.AUTO_SESSION_CRON) {
     }
   });
   console.log(`Auto session cron enabled: ${env.AUTO_SESSION_CRON}`);
+}
+
+// Cron: purge old audit log (daily at 3 AM). AUDIT_RETENTION_DAYS=0 to disable.
+if (env.AUDIT_RETENTION_DAYS > 0) {
+  cron.schedule('0 3 * * *', async () => {
+    try {
+      const { deleted } = await purgeOldAuditLog(env.AUDIT_RETENTION_DAYS);
+      if (deleted > 0) {
+        console.log(`[cron] Purged ${deleted} old audit log entry(ies)`);
+      }
+    } catch (err) {
+      console.error('[cron] Audit retention purge failed:', err);
+    }
+  });
 }
 
 // Production: warn if JWT_SECRET is default or weak

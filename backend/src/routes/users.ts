@@ -6,6 +6,8 @@ import { pool } from '../db/pool.js';
 import { authMiddleware, requireRoles } from '../middleware/auth.js';
 import type { AuthRequest } from '../middleware/auth.js';
 import { audit, getClientIp } from '../services/auditService.js';
+import { parseUsersCsv, bulkImportUsers } from '../services/bulkImportService.js';
+import { deleteUser } from '../services/userDeletionService.js';
 
 const router = Router();
 router.use(authMiddleware);
@@ -85,6 +87,30 @@ router.post('/', requireRoles('admin'), async (req, res) => {
   }
 });
 
+const importSchema = z.object({ csv: z.string().min(1) });
+router.post('/import', requireRoles('admin'), async (req, res) => {
+  const parsed = importSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
+    return;
+  }
+  const rows = parseUsersCsv(parsed.data.csv);
+  if (rows.length === 0) {
+    res.status(400).json({ error: 'No valid rows. CSV format: email, full_name, role, guardian_email (optional), card_uid (optional), password (optional for admin/faculty)' });
+    return;
+  }
+  const result = await bulkImportUsers(rows);
+  await audit({
+    actorId: (req as AuthRequest).user?.userId,
+    actorEmail: (req as AuthRequest).user?.email,
+    action: 'user_bulk_import',
+    resourceType: 'user',
+    details: { created: result.created, skipped: result.skipped, errors: result.errors.length },
+    ipAddress: getClientIp(req),
+  });
+  res.json(result);
+});
+
 router.post('/rfid', requireRoles('admin', 'faculty'), async (req, res) => {
   const parsed = rfidSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -101,6 +127,30 @@ router.post('/rfid', requireRoles('admin', 'faculty'), async (req, res) => {
     [parsed.data.user_id]
   );
   res.status(201).json(row.rows[0]);
+});
+
+router.delete('/:id', requireRoles('admin'), async (req, res) => {
+  const targetId = req.params.id;
+  const selfId = (req as AuthRequest).user?.userId;
+  if (targetId === selfId) {
+    res.status(400).json({ error: 'Cannot delete your own account' });
+    return;
+  }
+  const result = await deleteUser(targetId);
+  if (!result.ok) {
+    res.status(400).json({ error: result.reason });
+    return;
+  }
+  await audit({
+    actorId: selfId,
+    actorEmail: (req as AuthRequest).user?.email,
+    action: 'user_delete',
+    resourceType: 'user',
+    resourceId: targetId,
+    details: { deleted_user_id: targetId },
+    ipAddress: getClientIp(req),
+  });
+  res.status(204).send();
 });
 
 const updateGuardianSchema = z.object({ guardian_email: z.string().email().nullable() });

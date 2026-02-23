@@ -22,4 +22,8 @@ export const env = {
   CORS_ORIGIN: process.env.CORS_ORIGIN ?? '',
   /** In production, require HTTPS (reject or redirect). Set to "1" or "true" to enable. */
   REQUIRE_HTTPS: /^(1|true|yes)$/i.test(process.env.REQUIRE_HTTPS ?? ''),
+  /** Require registered device_id + API key for POST /api/iot/attendance. Set to "1" or "true" for world-class hardening. */
+  IOT_REQUIRE_DEVICE_AUTH: /^(1|true|yes)$/i.test(process.env.IOT_REQUIRE_DEVICE_AUTH ?? ''),
+  /** Delete audit_log entries older than this many days (0 = disable). Default 365. */
+  AUDIT_RETENTION_DAYS: Math.max(0, parseInt(process.env.AUDIT_RETENTION_DAYS ?? '365', 10)),
 };

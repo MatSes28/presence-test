@@ -43,6 +43,10 @@ export default function Users() {
   const [createError, setCreateError] = useState('');
   const [adding, setAdding] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importCsv, setImportCsv] = useState('');
+  const [importResult, setImportResult] = useState<{ created: number; skipped: number; errors: { row: number; email?: string; message: string }[] } | null>(null);
+  const [importing, setImporting] = useState(false);
   const isAdmin = user?.role === 'admin';
   const needsPassword = createForm.role === 'faculty' || createForm.role === 'admin';
 
@@ -122,6 +126,27 @@ export default function Users() {
     });
   }
 
+  async function submitImport(e: React.FormEvent) {
+    e.preventDefault();
+    if (!importCsv.trim()) return;
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const result = await api.post<{ created: number; skipped: number; errors: { row: number; email?: string; message: string }[] }>('/api/users/import', { csv: importCsv.trim() });
+      setImportResult(result);
+      const list = await api.get<StudentRow[]>('/api/users/students');
+      setStudents(list);
+      if (isAdmin) {
+        const users = await api.get<{ id: string; email: string; full_name: string; role: string }[]>('/api/users');
+        setAllUsers(users);
+      }
+    } catch (err) {
+      setImportResult({ created: 0, skipped: 0, errors: [{ row: 0, message: err instanceof Error ? err.message : 'Import failed' }] });
+    } finally {
+      setImporting(false);
+    }
+  }
+
   async function linkRfid(e: React.FormEvent) {
     e.preventDefault();
     if (!rfidForm.user_id || !rfidForm.card_uid) return;
@@ -148,7 +173,10 @@ export default function Users() {
           <p className="mt-1 text-sm text-[var(--text-secondary)]">Students and their linked RFID cards. Only admins and faculty sign in.</p>
         </div>
         {isAdmin && (
-          <Button onClick={() => setCreateModalOpen(true)}>Add New User</Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setCreateModalOpen(true)}>Add New User</Button>
+            <Button variant="secondary" onClick={() => { setImportModalOpen(true); setImportCsv(''); setImportResult(null); }}>Import CSV</Button>
+          </div>
         )}
       </div>
 
@@ -259,6 +287,39 @@ export default function Users() {
               >
                 {creating ? 'Creating…' : 'Create User'}
               </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {isAdmin && (
+        <Modal open={importModalOpen} onClose={() => { setImportModalOpen(false); setImportResult(null); }} title="Bulk import users (CSV)">
+          <form onSubmit={submitImport} className="space-y-4">
+            <p className="text-sm text-[var(--text-secondary)]">
+              Columns: email, full_name, role, guardian_email (optional), card_uid (optional), password (optional for admin/faculty). Header row optional.
+            </p>
+            <textarea
+              className="w-full min-h-[200px] rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] font-mono"
+              placeholder={'email,full_name,role,guardian_email,card_uid,password\nstudent@example.com,Student One,student,parent@example.com,CARD001,'}
+              value={importCsv}
+              onChange={(e) => setImportCsv(e.target.value)}
+            />
+            {importResult && (
+              <div className="text-sm">
+                <p className="text-[var(--text)]">Created: {importResult.created} · Skipped: {importResult.skipped}</p>
+                {importResult.errors.length > 0 && (
+                  <ul className="mt-1 text-[var(--error)] list-disc list-inside">
+                    {importResult.errors.slice(0, 10).map((e, i) => (
+                      <li key={i}>Row {e.row}: {e.message}</li>
+                    ))}
+                    {importResult.errors.length > 10 && <li>… and {importResult.errors.length - 10} more</li>}
+                  </ul>
+                )}
+              </div>
+            )}
+            <div className="flex gap-2 justify-end pt-2">
+              <Button type="button" variant="secondary" onClick={() => setImportModalOpen(false)}>Close</Button>
+              <Button type="submit" disabled={importing || !importCsv.trim()}>{importing ? 'Importing…' : 'Import'}</Button>
             </div>
           </form>
         </Modal>

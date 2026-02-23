@@ -2,7 +2,7 @@
 
 Attendance monitoring and classroom engagement system for **Central Luzon State University** — Department of Information Technology (DIT), College of Engineering (BSIT). Combines RFID identification with proximity (ultrasonic) verification to reduce ghost attendance and support real-time monitoring.
 
-See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for system architecture and spec alignment.
+See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for system architecture and spec alignment. For deployment and operations at scale, see **[docs/RUNBOOK.md](docs/RUNBOOK.md)** and **[docs/PRODUCTION_READINESS.md](docs/PRODUCTION_READINESS.md)**.
 
 ## Features
 
@@ -13,6 +13,7 @@ See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for system architecture and
 - **Role-based access** — Admin and faculty dashboards; students use cards only.
 - **Real-time updates** — WebSocket feed for live attendance events.
 - **Reports** — Attendance logs, session reports, and **CSV export** for monitoring and evaluation.
+- **World-class scale** — IoT device authentication, bulk user/CSV import, audit retention, user deletion (right to erasure), health check with DB, backup script, runbook, and optional SSO (see [docs/SSO_OIDC.md](docs/SSO_OIDC.md)).
 
 ## Tech Stack
 
@@ -84,7 +85,7 @@ ESP32-S3 units connect to the same network (WiFi) as the server and send attenda
 
 - If `session_id` is omitted, the current **active** session is used (one active session at a time).
 - Attendance is accepted only when the card is registered, proximity is within the configured range, and the session is active. Duplicate scans for the same user in the same session are ignored.
-- **IoT device registry:** Admins can register devices at **IoT devices** in the app. When `device_id` is sent with attendance, the device’s `last_seen_at` is updated for health monitoring.
+- **IoT device registry:** Admins can register devices at **IoT devices** in the app. When `device_id` is sent with attendance, the device’s `last_seen_at` is updated for health monitoring. For production hardening, set `IOT_REQUIRE_DEVICE_AUTH=1` so devices must send `device_id` and `X-IoT-API-Key` (or `api_key` in body).
 
 ## Deployment on Railway
 
@@ -110,6 +111,8 @@ ESP32-S3 units connect to the same network (WiFi) as the server and send attenda
    | `SESSION_COOKIE_NAME` | No | HTTP-only session cookie name (default: `clirdec_session`). |
    | `CORS_ORIGIN` | No | Comma-separated allowed origins (e.g. `https://your-app.railway.app`). Empty = allow any (dev). |
    | `REQUIRE_HTTPS` | No | Set to `1` or `true` in production to reject non-HTTPS requests (behind proxy). |
+   | `IOT_REQUIRE_DEVICE_AUTH` | No | Set to `1` or `true` to require device_id + API key on `/api/iot/attendance`. |
+   | `AUDIT_RETENTION_DAYS` | No | Purge audit_log older than this (default: 365). Set to `0` to disable. |
 
 6. Build and start:
 
@@ -126,6 +129,11 @@ ESP32-S3 units connect to the same network (WiFi) as the server and send attenda
 
 8. Create the first admin user via `/api/auth/register` as above (use your deployed URL).
 
+### Backup and runbook
+
+- **Backup:** `npm run db:backup` (requires `pg_dump` and `DATABASE_URL`). Pipe to a file or gzip. See [docs/RUNBOOK.md](docs/RUNBOOK.md) for restore and audit procedures.
+- **Health:** `GET /health` returns `{ status, service, database }`; use for load balancers and monitoring (503 when DB is down).
+
 ---
 
-**CLIRDEC** provides a structured, secure workflow for classroom attendance with identity verification and presence detection, suitable for faculty and administrative reporting.
+**CLIRDEC** provides a structured, secure workflow for classroom attendance with identity verification and presence detection, suitable for faculty and administrative reporting at department or campus scale. See [docs/PRODUCTION_READINESS.md](docs/PRODUCTION_READINESS.md) for a readiness checklist and [docs/SSO_OIDC.md](docs/SSO_OIDC.md) for SSO integration guidance.

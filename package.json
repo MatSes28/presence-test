@@ -13,6 +13,7 @@
     "build:frontend": "cd frontend && npm run build",
     "start": "node backend/dist/index.js",
     "db:migrate": "cd backend && npm run db:migrate",
+    "db:backup": "node scripts/db-backup.js",
     "postinstall": "cd backend && npm install && cd ../frontend && npm install"
   },
   "devDependencies": {
