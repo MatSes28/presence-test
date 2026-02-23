@@ -108,6 +108,8 @@ ESP32-S3 units connect to the same network (WiFi) as the server and send attenda
    | `RESEND_API_KEY` | No | Resend API key for guardian email notifications. If unset, notifications are logged only. |
    | `EMAIL_FROM` | No | From address for emails (e.g. `notifications@yourdomain.com`). Required when using Resend. |
    | `SESSION_COOKIE_NAME` | No | HTTP-only session cookie name (default: `clirdec_session`). |
+   | `CORS_ORIGIN` | No | Comma-separated allowed origins (e.g. `https://your-app.railway.app`). Empty = allow any (dev). |
+   | `REQUIRE_HTTPS` | No | Set to `1` or `true` in production to reject non-HTTPS requests (behind proxy). |
 
 6. Build and start:
 

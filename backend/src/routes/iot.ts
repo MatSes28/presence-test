@@ -2,7 +2,9 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { ingestAttendance } from '../services/attendanceValidation.js';
 import { authMiddleware, requireRoles } from '../middleware/auth.js';
+import type { AuthRequest } from '../middleware/auth.js';
 import * as iotDeviceService from '../services/iotDeviceService.js';
+import { audit, getClientIp } from '../services/auditService.js';
 
 const router = Router();
 
@@ -59,6 +61,15 @@ router.post('/devices', authMiddleware, requireRoles('admin'), async (req, res) 
   }
   try {
     const device = await iotDeviceService.createDevice(parsed.data);
+    await audit({
+      actorId: (req as AuthRequest).user?.userId,
+      actorEmail: (req as AuthRequest).user?.email,
+      action: 'iot_device_create',
+      resourceType: 'iot_device',
+      resourceId: device.device_id,
+      details: { name: parsed.data.name },
+      ipAddress: getClientIp(req),
+    });
     res.status(201).json(device);
   } catch (e: unknown) {
     if (e && typeof e === 'object' && 'code' in e && (e as { code: string }).code === '23505') {
@@ -85,15 +96,33 @@ router.patch('/devices/:id', authMiddleware, requireRoles('admin'), async (req, 
     res.status(404).json({ error: 'Device not found' });
     return;
   }
+  await audit({
+    actorId: (req as AuthRequest).user?.userId,
+    actorEmail: (req as AuthRequest).user?.email,
+    action: 'iot_device_update',
+    resourceType: 'iot_device',
+    resourceId: device.device_id,
+    details: parsed.data,
+    ipAddress: getClientIp(req),
+  });
   res.json(device);
 });
 
 router.delete('/devices/:id', authMiddleware, requireRoles('admin'), async (req, res) => {
-  const deleted = await iotDeviceService.deleteDevice(req.params.id);
+  const id = req.params.id;
+  const deleted = await iotDeviceService.deleteDevice(id);
   if (!deleted) {
     res.status(404).json({ error: 'Device not found' });
     return;
   }
+  await audit({
+    actorId: (req as AuthRequest).user?.userId,
+    actorEmail: (req as AuthRequest).user?.email,
+    action: 'iot_device_delete',
+    resourceType: 'iot_device',
+    resourceId: id,
+    ipAddress: getClientIp(req),
+  });
   res.status(204).send();
 });
 

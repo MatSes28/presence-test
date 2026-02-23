@@ -7,6 +7,7 @@ import { env } from '../config/env.js';
 import type { UserRole } from '../types/index.js';
 import { authMiddleware } from '../middleware/auth.js';
 import type { AuthRequest } from '../middleware/auth.js';
+import { audit, getClientIp } from '../services/auditService.js';
 
 const router = Router();
 
@@ -56,6 +57,13 @@ router.post('/login', async (req, res) => {
     { expiresIn: env.JWT_EXPIRES_IN } as jwt.SignOptions
   );
   res.cookie(env.SESSION_COOKIE_NAME, token, COOKIE_OPTIONS);
+  await audit({
+    actorId: user.id,
+    actorEmail: user.email,
+    action: 'auth_login',
+    details: { role: user.role },
+    ipAddress: getClientIp(req),
+  });
   res.json({
     token,
     user: {
@@ -124,8 +132,24 @@ router.get('/me', authMiddleware, async (req, res) => {
   });
 });
 
-/** Clear session cookie. */
-router.post('/logout', (_req, res) => {
+/** Clear session cookie. Optionally audit if user was logged in (cookie present). */
+router.post('/logout', async (req, res) => {
+  const token = req.cookies?.[env.SESSION_COOKIE_NAME];
+  if (token) {
+    try {
+      const payload = jwt.verify(token, env.JWT_SECRET) as { userId?: string; email?: string };
+      if (payload?.userId) {
+        await audit({
+          actorId: payload.userId,
+          actorEmail: payload.email ?? undefined,
+          action: 'auth_logout',
+          ipAddress: getClientIp(req),
+        });
+      }
+    } catch {
+      // ignore invalid/expired token
+    }
+  }
   res.clearCookie(env.SESSION_COOKIE_NAME, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',

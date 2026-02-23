@@ -8,6 +8,7 @@ import Schedules from './pages/Schedules';
 import Users from './pages/Users';
 import AttendanceReport from './pages/AttendanceReport';
 import IotDevices from './pages/IotDevices';
+import Privacy from './pages/Privacy';
 
 function PrivateRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user, token } = useAuth();
@@ -20,6 +21,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/privacy" element={<Privacy />} />
       <Route
         path="/"
         element={

@@ -26,8 +26,28 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const httpServer = createServer(app);
 
+// CORS: in production restrict to CORS_ORIGIN (comma-separated); else allow any (dev)
+const corsOrigin = env.CORS_ORIGIN
+  ? env.CORS_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean)
+  : true;
+app.use(cors({
+  origin: Array.isArray(corsOrigin) && corsOrigin.length > 0 ? corsOrigin : true,
+  credentials: true,
+}));
+
+// Optional: require HTTPS in production (set REQUIRE_HTTPS=1)
+if (env.NODE_ENV === 'production' && env.REQUIRE_HTTPS) {
+  app.use((req, res, next) => {
+    const proto = req.headers['x-forwarded-proto'];
+    if (proto !== 'https') {
+      res.status(403).json({ error: 'HTTPS required' });
+      return;
+    }
+    next();
+  });
+}
+
 app.use(helmet({ contentSecurityPolicy: false }));
-app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 
@@ -87,6 +107,14 @@ if (env.AUTO_SESSION_CRON) {
     }
   });
   console.log(`Auto session cron enabled: ${env.AUTO_SESSION_CRON}`);
+}
+
+// Production: warn if JWT_SECRET is default or weak
+if (env.NODE_ENV === 'production') {
+  const secret = process.env.JWT_SECRET ?? '';
+  if (!secret || secret === 'change-me-in-production' || secret.length < 32) {
+    console.warn('[security] JWT_SECRET should be set to a strong random value (≥32 chars) in production.');
+  }
 }
 
 httpServer.listen(env.PORT, () => {

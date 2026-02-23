@@ -1,4 +1,4 @@
-import { Outlet, NavLink } from 'react-router-dom';
+import { Outlet, NavLink, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import styles from './Layout.module.css';
 
@@ -40,6 +40,7 @@ export default function Layout() {
         <div className={styles.user}>
           <span>{user?.full_name}</span>
           <span className={styles.role}>{user?.role}</span>
+          <Link to="/privacy" className={styles.footerLink}>Privacy</Link>
           <button type="button" onClick={logout} className={styles.logout}>
             Log out
           </button>

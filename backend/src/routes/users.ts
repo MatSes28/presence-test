@@ -3,6 +3,8 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { pool } from '../db/pool.js';
 import { authMiddleware, requireRoles } from '../middleware/auth.js';
+import type { AuthRequest } from '../middleware/auth.js';
+import { audit, getClientIp } from '../services/auditService.js';
 
 const router = Router();
 router.use(authMiddleware);
@@ -51,7 +53,17 @@ router.post('/', requireRoles('admin'), async (req, res) => {
       `INSERT INTO users (email, password_hash, full_name, role, guardian_email) VALUES ($1, $2, $3, $4, $5) RETURNING id, email, role, full_name, created_at`,
       [parsed.data.email, hash, parsed.data.full_name, parsed.data.role, guardian]
     );
-    res.status(201).json(insert.rows[0]);
+    const newUser = insert.rows[0];
+    await audit({
+      actorId: (req as AuthRequest).user?.userId,
+      actorEmail: (req as AuthRequest).user?.email,
+      action: 'user_create',
+      resourceType: 'user',
+      resourceId: newUser?.id,
+      details: { email: parsed.data.email, role: parsed.data.role },
+      ipAddress: getClientIp(req),
+    });
+    res.status(201).json(newUser);
   } catch (e: unknown) {
     const err = e as { code?: string };
     if (err?.code === '23505') {

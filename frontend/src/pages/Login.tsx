@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -65,6 +65,9 @@ export default function Login() {
             <Button type="submit" disabled={loading} className="w-full">
               {loading ? 'Signing in…' : 'Sign in'}
             </Button>
+            <p className="text-center text-xs text-[var(--text-muted)]">
+              <Link to="/privacy" className="text-[var(--accent)] hover:underline">Privacy notice</Link>
+            </p>
           </form>
         </CardContent>
       </Card>

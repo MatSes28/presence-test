@@ -4,6 +4,7 @@ import { pool } from '../db/pool.js';
 import { authMiddleware, requireRoles } from '../middleware/auth.js';
 import type { AuthRequest } from '../middleware/auth.js';
 import { autoCreateSessionsForToday } from '../services/sessionService.js';
+import { audit, getClientIp } from '../services/auditService.js';
 
 const router = Router();
 router.use(authMiddleware);
@@ -84,7 +85,17 @@ router.post('/start', requireRoles('admin', 'faculty'), async (req, res) => {
     `INSERT INTO class_sessions (schedule_id, status) VALUES ($1, 'active') RETURNING *`,
     [schedule_id]
   );
-  res.status(201).json(insert.rows[0]);
+  const sessionRow = insert.rows[0];
+  await audit({
+    actorId: user.userId,
+    actorEmail: user.email,
+    action: 'session_start',
+    resourceType: 'session',
+    resourceId: sessionRow?.id,
+    details: { schedule_id },
+    ipAddress: getClientIp(req),
+  });
+  res.status(201).json(sessionRow);
 });
 
 router.post('/end', requireRoles('admin', 'faculty'), async (req, res) => {
@@ -114,6 +125,14 @@ router.post('/end', requireRoles('admin', 'faculty'), async (req, res) => {
     res.status(404).json({ error: 'Session not found or already ended' });
     return;
   }
+  await audit({
+    actorId: user.userId,
+    actorEmail: user.email,
+    action: 'session_end',
+    resourceType: 'session',
+    resourceId: parsed.data.session_id,
+    ipAddress: getClientIp(req),
+  });
   res.json(updated.rows[0]);
 });
 

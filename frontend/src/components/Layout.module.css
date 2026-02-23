@@ -70,6 +70,16 @@
   text-transform: capitalize;
 }
 
+.footerLink {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.footerLink:hover {
+  color: var(--accent);
+}
+
 .logout {
   padding: 0.4rem 0.75rem;
   background: transparent;

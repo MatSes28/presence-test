@@ -18,4 +18,8 @@ export const env = {
   EMAIL_FROM: process.env.EMAIL_FROM ?? '',
   /** Session cookie name for HTTP-only JWT. */
   SESSION_COOKIE_NAME: process.env.SESSION_COOKIE_NAME ?? 'clirdec_session',
+  /** Allowed CORS origins (comma-separated). In production set to your frontend URL(s). Empty = allow any (dev). */
+  CORS_ORIGIN: process.env.CORS_ORIGIN ?? '',
+  /** In production, require HTTPS (reject or redirect). Set to "1" or "true" to enable. */
+  REQUIRE_HTTPS: /^(1|true|yes)$/i.test(process.env.REQUIRE_HTTPS ?? ''),
 };

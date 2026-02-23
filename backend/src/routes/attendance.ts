@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { pool } from '../db/pool.js';
 import { authMiddleware, requireRoles } from '../middleware/auth.js';
-import type { AuthRequest, JwtPayload } from '../middleware/auth.js';
+import type { AuthRequest } from '../middleware/auth.js';
+import { audit, getClientIp } from '../services/auditService.js';
 
 const router = Router();
 router.use(authMiddleware);
@@ -55,9 +56,18 @@ router.get('/by-session/:sessionId', requireRoles('admin', 'faculty'), async (re
 
 router.get('/reports/session/:sessionId', requireRoles('admin', 'faculty'), async (req, res) => {
   const { sessionId } = req.params;
-  if (!(await canAccessSession(req as AuthRequest, sessionId))) {
+  const authReq = req as AuthRequest;
+  if (!(await canAccessSession(authReq, sessionId))) {
     return res.status(403).json({ error: 'Access denied to this session' });
   }
+  await audit({
+    actorId: authReq.user?.userId,
+    actorEmail: authReq.user?.email,
+    action: 'attendance_report_view',
+    resourceType: 'session',
+    resourceId: sessionId,
+    ipAddress: getClientIp(req),
+  });
   const session = await pool.query(
     `SELECT cs.*, s.subject, s.room FROM class_sessions cs JOIN schedules s ON s.id = cs.schedule_id WHERE cs.id = $1`,
     [sessionId]
@@ -75,8 +85,9 @@ router.get('/reports/session/:sessionId', requireRoles('admin', 'faculty'), asyn
 
 router.get('/reports/session/:sessionId/export', requireRoles('admin', 'faculty'), async (req, res) => {
   const { sessionId } = req.params;
+  const authReq = req as AuthRequest;
   const format = (req.query.format as string) || 'csv';
-  if (!(await canAccessSession(req as AuthRequest, sessionId))) {
+  if (!(await canAccessSession(authReq, sessionId))) {
     return res.status(403).json({ error: 'Access denied to this session' });
   }
   const session = await pool.query(
@@ -94,6 +105,15 @@ router.get('/reports/session/:sessionId/export', requireRoles('admin', 'faculty'
   );
   const s = session.rows[0];
   if (format === 'csv') {
+    await audit({
+      actorId: authReq.user?.userId,
+      actorEmail: authReq.user?.email,
+      action: 'attendance_export_csv',
+      resourceType: 'session',
+      resourceId: sessionId,
+      details: { format: 'csv', rowCount: events.rows.length },
+      ipAddress: getClientIp(req),
+    });
     const header = 'Name,Email,Recorded At,Distance (cm),Status';
     const rows = events.rows.map(
       (r: { full_name: string; email: string; recorded_at: string; distance_cm: number | null; status: string }) =>

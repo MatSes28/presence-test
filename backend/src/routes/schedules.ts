@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { pool } from '../db/pool.js';
 import { authMiddleware, requireRoles } from '../middleware/auth.js';
+import type { AuthRequest } from '../middleware/auth.js';
+import { audit, getClientIp } from '../services/auditService.js';
 
 const router = Router();
 router.use(authMiddleware);
@@ -49,7 +51,17 @@ router.post('/', requireRoles('admin'), async (req, res) => {
       parsed.data.faculty_id,
     ]
   );
-  res.status(201).json(insert.rows[0]);
+  const row = insert.rows[0];
+  await audit({
+    actorId: (req as AuthRequest).user?.userId,
+    actorEmail: (req as AuthRequest).user?.email,
+    action: 'schedule_create',
+    resourceType: 'schedule',
+    resourceId: row?.id,
+    details: { subject: parsed.data.subject, room: parsed.data.room },
+    ipAddress: getClientIp(req),
+  });
+  res.status(201).json(row);
 });
 
 export default router;
