@@ -56,10 +56,12 @@ export default function IotDevices() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">IoT devices</h1>
-      <p className="text-[var(--text-muted)] text-sm">
-        Register ESP32 devices for attendance. Use the returned API key on the device. Last seen is updated on each attendance event.
-      </p>
+      <div>
+        <h1 className="text-xl font-semibold text-[var(--text)] tracking-tight">IoT devices</h1>
+        <p className="mt-1 text-sm text-[var(--text-secondary)]">
+          Register ESP32 devices for attendance. Use the returned API key on the device. Last seen is updated on each attendance event.
+        </p>
+      </div>
 
       <Card>
         <CardHeader>

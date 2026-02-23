@@ -8,15 +8,27 @@ export default {
     extend: {
       colors: {
         clirdec: {
-          bg: '#0d0f12',
-          surface: '#161a1f',
-          border: '#2a3038',
-          accent: '#3b82f6',
+          bg: 'var(--bg)',
+          'bg-elevated': 'var(--bg-elevated)',
+          surface: 'var(--surface)',
+          border: 'var(--border)',
+          accent: 'var(--accent)',
+          'accent-muted': 'var(--accent-muted)',
         },
       },
       fontFamily: {
-        sans: ['DM Sans', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'monospace'],
+        sans: ['var(--font-sans)'],
+        mono: ['var(--font-mono)'],
+      },
+      borderRadius: {
+        'DEFAULT': 'var(--radius)',
+        lg: 'var(--radius-lg)',
+        xl: 'var(--radius-xl)',
+      },
+      boxShadow: {
+        sm: 'var(--shadow-sm)',
+        DEFAULT: 'var(--shadow)',
+        lg: 'var(--shadow-lg)',
       },
     },
   },

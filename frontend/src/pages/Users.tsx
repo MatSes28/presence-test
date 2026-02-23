@@ -5,7 +5,10 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Select } from '../components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Modal } from '../components/ui/modal';
 import styles from './Users.module.css';
+
+type CreateRole = 'student' | 'faculty' | 'admin';
 
 interface StudentRow {
   id: string;
@@ -15,16 +18,33 @@ interface StudentRow {
   card_uid: string | null;
 }
 
+const ROLE_OPTIONS: { value: CreateRole; label: string }[] = [
+  { value: 'student', label: 'Student' },
+  { value: 'faculty', label: 'Faculty' },
+  { value: 'admin', label: 'Administrator' },
+];
+
 export default function Users() {
   const { user } = useAuth();
   const [students, setStudents] = useState<StudentRow[]>([]);
   const [allUsers, setAllUsers] = useState<{ id: string; email: string; full_name: string; role: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [rfidForm, setRfidForm] = useState({ user_id: '', card_uid: '' });
-  const [createForm, setCreateForm] = useState({ email: '', password: '', full_name: '', role: 'student' as 'student' | 'faculty' });
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    full_name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    role: 'student' as CreateRole,
+    gender: '',
+    department: 'Information Technology',
+  });
+  const [createError, setCreateError] = useState('');
   const [adding, setAdding] = useState(false);
   const [creating, setCreating] = useState(false);
   const isAdmin = user?.role === 'admin';
+  const needsPassword = createForm.role === 'faculty' || createForm.role === 'admin';
 
   useEffect(() => {
     api
@@ -41,16 +61,40 @@ export default function Users() {
 
   async function createUser(e: React.FormEvent) {
     e.preventDefault();
-    if (!createForm.email || !createForm.password || !createForm.full_name) return;
+    setCreateError('');
+    if (!createForm.full_name?.trim() || !createForm.email?.trim()) {
+      setCreateError('Full name and email are required.');
+      return;
+    }
+    if (needsPassword) {
+      if (!createForm.password || createForm.password.length < 6) {
+        setCreateError('Password must be at least 6 characters.');
+        return;
+      }
+      if (createForm.password !== createForm.confirmPassword) {
+        setCreateError('Password and Confirm password do not match.');
+        return;
+      }
+    }
     setCreating(true);
     try {
-      await api.post('/api/users', {
-        email: createForm.email,
-        password: createForm.password,
-        full_name: createForm.full_name,
+      const body: { email: string; password?: string; full_name: string; role: string } = {
+        email: createForm.email.trim(),
+        full_name: createForm.full_name.trim(),
         role: createForm.role,
+      };
+      if (needsPassword && createForm.password) body.password = createForm.password;
+      await api.post('/api/users', body);
+      setCreateModalOpen(false);
+      setCreateForm({
+        full_name: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        role: 'student',
+        gender: '',
+        department: 'Information Technology',
       });
-      setCreateForm({ email: '', password: '', full_name: '', role: 'student' });
       const list = await api.get<StudentRow[]>('/api/users/students');
       setStudents(list);
       if (isAdmin) {
@@ -58,10 +102,24 @@ export default function Users() {
         setAllUsers(users);
       }
     } catch (err) {
-      alert((err as Error).message);
+      setCreateError(err instanceof Error ? err.message : 'Failed to create user');
     } finally {
       setCreating(false);
     }
+  }
+
+  function closeCreateModal() {
+    setCreateModalOpen(false);
+    setCreateError('');
+    setCreateForm({
+      full_name: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      role: 'student',
+      gender: '',
+      department: 'Information Technology',
+    });
   }
 
   async function linkRfid(e: React.FormEvent) {
@@ -84,55 +142,126 @@ export default function Users() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Users & RFID</h1>
-      <p className="text-[var(--text-muted)] text-sm">Students and their linked RFID cards for attendance.</p>
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-xl font-semibold text-[var(--text)] tracking-tight">User Management</h1>
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">Students and their linked RFID cards. Only admins and faculty sign in.</p>
+        </div>
+        {isAdmin && (
+          <Button onClick={() => setCreateModalOpen(true)}>Add New User</Button>
+        )}
+      </div>
 
       {isAdmin && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Create user (Admin)</CardTitle>
-            <CardDescription>Add a new student or faculty account.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={createUser} className="flex flex-wrap gap-3 items-end">
+        <Modal open={createModalOpen} onClose={closeCreateModal} title="Create New User">
+          <form onSubmit={createUser} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-muted)] mb-1">Full Name *</label>
               <Input
-                type="email"
-                placeholder="Email"
-                value={createForm.email}
-                onChange={(e) => setCreateForm((f) => ({ ...f, email: e.target.value }))}
-                required
-                className="min-w-[200px]"
-              />
-              <Input
-                type="password"
-                placeholder="Password (min 6)"
-                value={createForm.password}
-                onChange={(e) => setCreateForm((f) => ({ ...f, password: e.target.value }))}
-                required
-                minLength={6}
-                className="min-w-[160px]"
-              />
-              <Input
-                placeholder="Full name"
+                placeholder="Enter full name"
                 value={createForm.full_name}
                 onChange={(e) => setCreateForm((f) => ({ ...f, full_name: e.target.value }))}
                 required
-                className="min-w-[160px]"
+                className="w-full"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-muted)] mb-1">Email *</label>
+              <Input
+                type="email"
+                placeholder="Enter email address"
+                value={createForm.email}
+                onChange={(e) => setCreateForm((f) => ({ ...f, email: e.target.value }))}
+                required
+                className="w-full"
+              />
+            </div>
+            {needsPassword && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-muted)] mb-1">Password *</label>
+                  <Input
+                    type="password"
+                    placeholder="Enter password"
+                    value={createForm.password}
+                    onChange={(e) => setCreateForm((f) => ({ ...f, password: e.target.value }))}
+                    required={needsPassword}
+                    minLength={6}
+                    className="w-full"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-muted)] mb-1">Confirm Password *</label>
+                  <Input
+                    type="password"
+                    placeholder="Confirm password"
+                    value={createForm.confirmPassword}
+                    onChange={(e) => setCreateForm((f) => ({ ...f, confirmPassword: e.target.value }))}
+                    required={needsPassword}
+                    minLength={6}
+                    className="w-full"
+                  />
+                </div>
+              </>
+            )}
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-muted)] mb-1">Role *</label>
               <Select
                 value={createForm.role}
-                onChange={(e) => setCreateForm((f) => ({ ...f, role: e.target.value as 'student' | 'faculty' }))}
-                className="min-w-[120px]"
+                onChange={(e) => setCreateForm((f) => ({ ...f, role: e.target.value as CreateRole }))}
+                className="w-full"
               >
-                <option value="student">Student</option>
-                <option value="faculty">Faculty</option>
+                {ROLE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
               </Select>
-              <Button type="submit" disabled={creating}>
-                {creating ? 'Creating…' : 'Create user'}
+              {createForm.role === 'student' && (
+                <p className="text-xs text-[var(--text-muted)] mt-1">Students use RFID only; no password needed.</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-muted)] mb-1">Gender</label>
+              <Select
+                value={createForm.gender}
+                onChange={(e) => setCreateForm((f) => ({ ...f, gender: e.target.value }))}
+                className="w-full"
+              >
+                <option value="">Select Gender</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+              </Select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-muted)] mb-1">Department</label>
+              <Input
+                placeholder="Department"
+                value={createForm.department}
+                onChange={(e) => setCreateForm((f) => ({ ...f, department: e.target.value }))}
+                className="w-full"
+              />
+            </div>
+            {createError && (
+              <p className="text-sm text-[var(--error)]">{createError}</p>
+            )}
+            <div className="flex gap-2 justify-end pt-2">
+              <Button type="button" variant="secondary" onClick={closeCreateModal}>
+                Cancel
               </Button>
-            </form>
-          </CardContent>
-        </Card>
+              <Button
+                type="submit"
+                disabled={
+                  creating ||
+                  !createForm.full_name?.trim() ||
+                  !createForm.email?.trim() ||
+                  (needsPassword && (!createForm.password || createForm.password.length < 6 || createForm.password !== createForm.confirmPassword))
+                }
+              >
+                {creating ? 'Creating…' : 'Create User'}
+              </Button>
+            </div>
+          </form>
+        </Modal>
       )}
 
       <Card>

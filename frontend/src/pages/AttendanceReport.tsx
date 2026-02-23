@@ -91,7 +91,9 @@ export default function AttendanceReport() {
   return (
     <div className="space-y-6">
       <Link to="/sessions" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}>← Sessions</Link>
-      <h1 className="text-2xl font-semibold">Attendance report</h1>
+      <div>
+        <h1 className="text-xl font-semibold text-[var(--text)] tracking-tight">Attendance report</h1>
+      </div>
 
       <Card>
         <CardHeader>

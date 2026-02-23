@@ -77,8 +77,10 @@ export default function Schedules() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Schedules</h1>
-      <p className="text-[var(--text-muted)] text-sm">Class schedule configuration (admin can add).</p>
+      <div>
+        <h1 className="text-xl font-semibold text-[var(--text)] tracking-tight">Schedules</h1>
+        <p className="mt-1 text-sm text-[var(--text-secondary)]">Class schedule configuration (admin can add).</p>
+      </div>
       {error && (
         <div className={styles.errorBanner} role="alert">
           {error}

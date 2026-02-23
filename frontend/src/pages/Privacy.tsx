@@ -10,7 +10,7 @@ export default function Privacy() {
         <Link to="/login" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}>
           ← Back to login
         </Link>
-        <Card>
+        <Card className="border-[var(--border)] shadow-[var(--shadow)]">
           <CardHeader>
             <CardTitle>Privacy Notice</CardTitle>
             <CardDescription>

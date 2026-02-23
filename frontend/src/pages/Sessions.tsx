@@ -73,8 +73,10 @@ export default function Sessions() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Class sessions</h1>
-      <p className="text-[var(--text-muted)] text-sm">Start and end sessions for attendance recording.</p>
+      <div>
+        <h1 className="text-xl font-semibold text-[var(--text)] tracking-tight">Class sessions</h1>
+        <p className="mt-1 text-sm text-[var(--text-secondary)]">Start and end sessions for attendance recording.</p>
+      </div>
 
       <Card>
         <CardHeader>

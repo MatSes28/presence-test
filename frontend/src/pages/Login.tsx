@@ -33,17 +33,18 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-[var(--bg)] to-[var(--surface)]">
-      <Card className="w-full max-w-md">
-        <CardHeader>
+    <div className="min-h-screen flex items-center justify-center p-6 bg-[var(--bg)]">
+      <div className="absolute inset-0 bg-gradient-to-b from-[var(--bg)] via-[var(--bg-elevated)] to-[var(--bg)] opacity-80" aria-hidden />
+      <Card className="relative w-full max-w-md border-[var(--border)] shadow-[var(--shadow-lg)]">
+        <CardHeader className="pb-2">
           <CardTitle className="text-xl font-mono tracking-wide text-[var(--accent)] text-center">
             CLIRDEC:PRESENCE
           </CardTitle>
-          <CardDescription className="text-center">
+          <CardDescription className="text-center text-[var(--text-secondary)]">
             Attendance monitoring & classroom engagement — Central Luzon State University · DIT · College of Engineering (BSIT)
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-4">
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <Input
               type="email"

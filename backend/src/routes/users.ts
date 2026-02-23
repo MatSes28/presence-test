@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
@@ -11,10 +12,13 @@ router.use(authMiddleware);
 
 const createUserSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(6),
+  password: z.string().min(6).optional(),
   full_name: z.string().min(1),
   role: z.enum(['admin', 'faculty', 'student']),
   guardian_email: z.string().email().optional(),
+}).refine((data) => data.role === 'student' || (data.password && data.password.length >= 6), {
+  message: 'Password (min 6 characters) is required for admin and faculty',
+  path: ['password'],
 });
 
 const rfidSchema = z.object({
@@ -46,7 +50,14 @@ router.post('/', requireRoles('admin'), async (req, res) => {
     res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
     return;
   }
-  const hash = await bcrypt.hash(parsed.data.password, 10);
+  // Students don't log in (RFID only); use a placeholder hash so they can't sign in. Faculty/admin need a password.
+  const password =
+    parsed.data.role === 'student'
+      ? null
+      : (parsed.data.password && parsed.data.password.length >= 6 ? parsed.data.password : null);
+  const hash = password
+    ? await bcrypt.hash(password, 10)
+    : await bcrypt.hash('no-login-student-' + crypto.randomUUID(), 10);
   const guardian = parsed.data.guardian_email ?? null;
   try {
     const insert = await pool.query(

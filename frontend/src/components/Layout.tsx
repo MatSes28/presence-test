@@ -1,54 +1,77 @@
-import { Outlet, NavLink, Link } from 'react-router-dom';
+import { Outlet, NavLink, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import styles from './Layout.module.css';
 
+const navItems: { to: string; label: string; roles?: ('admin' | 'faculty')[] }[] = [
+  { to: '/', label: 'Dashboard' },
+  { to: '/sessions', label: 'Sessions', roles: ['admin', 'faculty'] },
+  { to: '/schedules', label: 'Schedules', roles: ['admin'] },
+  { to: '/users', label: 'User Management', roles: ['admin'] },
+  { to: '/iot-devices', label: 'IoT Devices', roles: ['admin'] },
+];
+
+function getPageTitle(pathname: string): string {
+  if (pathname === '/') return 'Dashboard';
+  if (pathname.startsWith('/sessions')) return 'Sessions';
+  if (pathname.startsWith('/schedules')) return 'Schedules';
+  if (pathname.startsWith('/users')) return 'User Management';
+  if (pathname.startsWith('/iot-devices')) return 'IoT Devices';
+  if (pathname.startsWith('/attendance')) return 'Attendance Report';
+  return 'Dashboard';
+}
+
 export default function Layout() {
   const { user, logout } = useAuth();
+  const location = useLocation();
   const isAdmin = user?.role === 'admin';
   const isFaculty = user?.role === 'faculty' || isAdmin;
 
+  const initial = user?.full_name?.charAt(0)?.toUpperCase() ?? '?';
+
   return (
     <div className={styles.layout}>
-      <header className={styles.header}>
+      <aside className={styles.sidebar}>
         <div className={styles.brand}>
-          <span className={styles.logo}>CLIRDEC</span>
-          <span className={styles.tagline}>Attendance & Classroom Engagement · CLSU DIT</span>
+          <div className={styles.logo}>CLIRDEC</div>
+          <div className={styles.tagline}>Attendance & Classroom Engagement · CLSU DIT</div>
         </div>
         <nav className={styles.nav}>
-          <NavLink to="/" className={({ isActive }) => (isActive ? styles.active : '')} end>
-            Dashboard
-          </NavLink>
-          {(isFaculty || isAdmin) && (
-            <NavLink to="/sessions" className={({ isActive }) => (isActive ? styles.active : '')}>
-              Sessions
-            </NavLink>
-          )}
-          {isAdmin && (
-            <>
-              <NavLink to="/schedules" className={({ isActive }) => (isActive ? styles.active : '')}>
-                Schedules
+          {navItems.map((item) => {
+            if (item.roles && !item.roles.some((r) => (r === 'admin' && isAdmin) || (r === 'faculty' && isFaculty))) return null;
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.to === '/'}
+                className={({ isActive }) => [styles.navLink, isActive && styles.active].filter(Boolean).join(' ')}
+              >
+                {item.label}
               </NavLink>
-              <NavLink to="/users" className={({ isActive }) => (isActive ? styles.active : '')}>
-                Users
-              </NavLink>
-              <NavLink to="/iot-devices" className={({ isActive }) => (isActive ? styles.active : '')}>
-                IoT devices
-              </NavLink>
-            </>
-          )}
+            );
+          })}
         </nav>
-        <div className={styles.user}>
-          <span>{user?.full_name}</span>
-          <span className={styles.role}>{user?.role}</span>
+        <div className={styles.sidebarFooter}>
+          <div className={styles.userBlock}>
+            <div className={styles.userAvatar}>{initial}</div>
+            <div className={styles.userInfo}>
+              <div className={styles.userName}>{user?.full_name}</div>
+              <div className={styles.role}>{user?.role}</div>
+            </div>
+          </div>
           <Link to="/privacy" className={styles.footerLink}>Privacy</Link>
           <button type="button" onClick={logout} className={styles.logout}>
             Log out
           </button>
         </div>
-      </header>
-      <main className={styles.main}>
-        <Outlet />
-      </main>
+      </aside>
+      <div className={styles.mainWrap}>
+        <header className={styles.topBar}>
+          <span className={styles.breadcrumb}>Home / {getPageTitle(location.pathname)}</span>
+        </header>
+        <main className={styles.main}>
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 }
