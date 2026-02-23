@@ -12,7 +12,8 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  // In CI the workflow starts the app after migrate/seed; locally Playwright can start the app
   webServer: process.env.CI
-    ? { command: 'npm run dev', url: 'http://localhost:5173', reuseExistingServer: false, timeout: 120000 }
-    : undefined,
+    ? undefined
+    : { command: 'npm run dev', url: 'http://localhost:5173', reuseExistingServer: !process.env.CI, timeout: 120000 },
 });

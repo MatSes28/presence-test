@@ -124,6 +124,9 @@ export default function Login() {
                 <a href="/api/auth/oidc" className="text-[var(--accent)] hover:underline">Sign in with SSO</a>
               </p>
             )}
+            <p className="text-center text-sm text-[var(--text-muted)] mt-iso-1">
+              <Link to="/forgot-password" className="text-[var(--accent)] hover:underline">Forgot password?</Link>
+            </p>
             <p className="text-center text-xs text-[var(--text-muted)] mt-iso-1">
               <Link to="/privacy" className="text-[var(--accent)] hover:underline inline-flex items-center justify-center py-iso-1 min-h-touch">
                 Privacy notice

@@ -14,6 +14,8 @@ import { ingestAttendance } from './services/attendanceValidation.js';
 import { autoCreateSessionsForNextDays } from './services/sessionService.js';
 import { purgeOldAuditLog } from './services/retentionService.js';
 import { runAdditiveMigrations } from './db/runAdditiveMigrations.js';
+import { pool } from './db/pool.js';
+import bcrypt from 'bcryptjs';
 import authRoutes from './routes/auth.js';
 import iotRoutes from './routes/iot.js';
 import sessionRoutes from './routes/sessions.js';
@@ -96,6 +98,40 @@ app.get('/health', async (_req, res) => {
   res.status(db === 'up' ? 200 : 503).json({ status, service: 'clirdec-presence', database: db });
 });
 
+// API docs: OpenAPI spec + Swagger UI (spec in dist/openapi.json when built, or ../src/openapi.json in dev)
+const openapiPath = fs.existsSync(path.join(__dirname, 'openapi.json'))
+  ? path.join(__dirname, 'openapi.json')
+  : path.join(__dirname, '..', 'src', 'openapi.json');
+app.get('/api-docs/spec.json', (_req, res) => {
+  if (!fs.existsSync(openapiPath)) {
+    res.status(404).json({ error: 'Spec not found' });
+    return;
+  }
+  res.setHeader('Content-Type', 'application/json');
+  res.sendFile(openapiPath);
+});
+app.get('/api-docs', (_req, res) => {
+  res.setHeader('Content-Type', 'text/html');
+  res.send(`
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CLIRDEC API Docs</title>
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js" crossorigin></script>
+  <script>
+    window.onload = () => {
+      window.ui = SwaggerUIBundle({ url: '/api-docs/spec.json', dom_id: '#swagger-ui' });
+    };
+  </script>
+</body>
+</html>
+  `);
+});
+
 // Production: serve frontend static files and SPA fallback
 const publicDir = path.join(__dirname, '..', 'public');
 if (env.NODE_ENV === 'production' && fs.existsSync(publicDir)) {
@@ -150,8 +186,29 @@ if (env.NODE_ENV === 'production') {
   }
 }
 
+// Optional: seed admin user when SEED_ADMIN=1 and no users exist (e.g. CI/E2E)
+async function seedAdminIfNeeded(): Promise<void> {
+  if (!process.env.SEED_ADMIN || process.env.SEED_ADMIN === '0') return;
+  try {
+    const r = await pool.query('SELECT 1 FROM users LIMIT 1');
+    if (r.rows.length > 0) return;
+    const password = process.env.SEED_ADMIN_PASSWORD ?? 'password';
+    const hash = await bcrypt.hash(password, 10);
+    await pool.query(
+      `INSERT INTO users (email, password_hash, full_name, role) VALUES ($1, $2, $3, 'admin')`,
+      ['admin@example.com', hash, 'Admin']
+    );
+    console.log('[seed] Created admin@example.com for E2E/CI');
+  } catch (e: unknown) {
+    const err = e as { code?: string };
+    if (err?.code === '42P01') return; // ignore if users table doesn't exist yet
+    throw e;
+  }
+}
+
 // Run additive migrations on startup (last_seen_at, audit_log) so app works if db:migrate wasn't run
 runAdditiveMigrations()
+  .then(() => seedAdminIfNeeded())
   .then(() => {
     httpServer.listen(env.PORT, () => {
       console.log(`CLIRDEC backend listening on port ${env.PORT}`);

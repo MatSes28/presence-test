@@ -1,0 +1,91 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "CLIRDEC Presence API",
+    "description": "Attendance monitoring and classroom engagement API. Authenticate via cookie (session) or Bearer token.",
+    "version": "1.0.0"
+  },
+  "servers": [{ "url": "/", "description": "Relative to deployment" }],
+  "paths": {
+    "/api/auth/login": {
+      "post": {
+        "summary": "Sign in",
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "required": ["email", "password"], "properties": { "email": { "type": "string", "format": "email" }, "password": { "type": "string" } } } } },
+        "responses": { "200": { "description": "Token and user" }, "401": { "description": "Invalid credentials" } }
+      }
+    },
+    "/api/auth/logout": {
+      "post": { "summary": "Sign out", "responses": { "200": { "description": "OK" } } }
+    },
+    "/api/auth/me": {
+      "get": { "summary": "Current user", "security": [{}], "responses": { "200": { "description": "User" }, "401": { "description": "Unauthorized" } } }
+    },
+    "/api/auth/forgot-password": {
+      "post": {
+        "summary": "Request password reset (admin/faculty)",
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "required": ["email"], "properties": { "email": { "type": "string", "format": "email" } } } } },
+        "responses": { "200": { "description": "Message (same for existing or not)" } } }
+    },
+    "/api/auth/reset-password": {
+      "post": {
+        "summary": "Set new password with token",
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "required": ["token", "newPassword"], "properties": { "token": { "type": "string" }, "newPassword": { "type": "string", "minLength": 6 } } } } },
+        "responses": { "200": { "description": "Success" }, "400": { "description": "Invalid/expired token" } } }
+    },
+    "/api/sessions": {
+      "get": { "summary": "List sessions", "security": [{}], "responses": { "200": { "description": "Sessions list" } } }
+    },
+    "/api/sessions/start": {
+      "post": {
+        "summary": "Start a session",
+        "security": [{}],
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "required": ["schedule_id"], "properties": { "schedule_id": { "type": "string", "format": "uuid" } } } } },
+        "responses": { "200": { "description": "Session" }, "400": { "description": "Invalid" } } }
+    },
+    "/api/sessions/end": {
+      "post": {
+        "summary": "End a session",
+        "security": [{}],
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "required": ["session_id"], "properties": { "session_id": { "type": "string", "format": "uuid" } } } } },
+        "responses": { "200": { "description": "Session" } } }
+    },
+    "/api/users": {
+      "get": { "summary": "List users (admin/faculty)", "security": [{}], "responses": { "200": { "description": "Users" } } },
+      "post": { "summary": "Create user (admin)", "security": [{}], "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "email": {}, "password": {}, "full_name": {}, "role": { "enum": ["admin", "faculty", "student"] } } } } }, "responses": { "201": { "description": "User" } } }
+    },
+    "/api/users/students": {
+      "get": { "summary": "List students", "security": [{}], "responses": { "200": { "description": "Students" } } }
+    },
+    "/api/users/import": {
+      "post": { "summary": "Bulk import users (admin)", "security": [{}], "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "csv": { "type": "string" } } } } }, "responses": { "200": { "description": "Import result" } } }
+    },
+    "/api/attendance/reports/session/{sessionId}": {
+      "get": { "summary": "Attendance report for session", "security": [{}], "parameters": [{ "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }], "responses": { "200": { "description": "Report" }, "403": { "description": "Access denied" } } }
+    },
+    "/api/attendance/reports/session/{sessionId}/export": {
+      "get": { "summary": "Export session report as CSV", "security": [{}], "parameters": [{ "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string" } }, { "name": "format", "in": "query", "schema": { "type": "string", "default": "csv" } }], "responses": { "200": { "description": "CSV file" } } }
+    },
+    "/api/iot/attendance": {
+      "post": {
+        "summary": "Record attendance (IoT device)",
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "card_uid": {}, "device_id": {}, "api_key": {}, "distance_cm": {} } } } },
+        "responses": { "200": { "description": "Recorded" }, "400": { "description": "Validation failed" } } }
+    },
+    "/api/iot/devices": {
+      "get": { "summary": "List IoT devices (admin)", "security": [{}], "responses": { "200": { "description": "Devices" } } },
+      "post": { "summary": "Register device (admin)", "security": [{}], "responses": { "201": { "description": "Device + API key" } } }
+    },
+    "/api/behavior/at-risk": {
+      "get": { "summary": "Students at risk (attendance)", "security": [{}], "responses": { "200": { "description": "At-risk list" } } }
+    },
+    "/health": {
+      "get": { "summary": "Health check", "responses": { "200": { "description": "OK" }, "503": { "description": "Degraded (e.g. DB down)" } } }
+  },
+  "components": {
+    "securitySchemes": {
+      "cookie": { "type": "apiKey", "in": "cookie", "name": "clirdec_session", "description": "Session cookie (set by login)" },
+      "bearer": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
+    },
+    "security": [{ "cookie": [] }, { "bearer": [] }]
+  }
+}

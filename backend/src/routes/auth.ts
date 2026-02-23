@@ -9,6 +9,7 @@ import { authMiddleware } from '../middleware/auth.js';
 import type { AuthRequest } from '../middleware/auth.js';
 import { audit, getClientIp } from '../services/auditService.js';
 import * as oidcService from '../services/oidcService.js';
+import { sendPasswordResetEmail } from '../services/notificationService.js';
 
 const router = Router();
 
@@ -32,6 +33,12 @@ const registerSchema = z.object({
   password: z.string().min(6),
   full_name: z.string().min(1),
   role: z.enum(['admin', 'faculty', 'student']),
+});
+
+const forgotPasswordSchema = z.object({ email: z.string().email() });
+const resetPasswordSchema = z.object({
+  token: z.string().min(1),
+  newPassword: z.string().min(6),
 });
 
 router.post('/login', async (req, res) => {
@@ -134,6 +141,84 @@ router.get('/me', authMiddleware, async (req, res) => {
       full_name: row.full_name,
     },
   });
+});
+
+/** Public: request password reset. Only for admin/faculty (students don't log in). Sends email if user exists and email is configured. */
+router.post('/forgot-password', async (req, res) => {
+  const parsed = forgotPasswordSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
+    return;
+  }
+  const { email } = parsed.data;
+  const result = await pool.query(
+    'SELECT id, email, full_name, role FROM users WHERE email = $1 AND role IN ($2, $3)',
+    [email, 'admin', 'faculty']
+  );
+  // Always respond the same to avoid email enumeration
+  const ok = { message: 'If an account exists for this email, you will receive a reset link shortly.' };
+  if (result.rows.length === 0) {
+    res.json(ok);
+    return;
+  }
+  const user = result.rows[0];
+  if (!env.PASSWORD_RESET_APP_URL) {
+    res.json(ok);
+    return;
+  }
+  const resetToken = jwt.sign(
+    { userId: user.id, email: user.email, purpose: 'password_reset' },
+    env.JWT_SECRET,
+    { expiresIn: '1h' } as jwt.SignOptions
+  );
+  const resetLink = `${env.PASSWORD_RESET_APP_URL.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(resetToken)}`;
+  const sent = await sendPasswordResetEmail({
+    email: user.email,
+    fullName: user.full_name,
+    resetLink,
+  });
+  if (sent) {
+    await audit({
+      actorId: user.id,
+      actorEmail: user.email,
+      action: 'auth_password_reset_requested',
+      ipAddress: getClientIp(req),
+    });
+  }
+  res.json(ok);
+});
+
+/** Public: set new password using token from email. */
+router.post('/reset-password', async (req, res) => {
+  const parsed = resetPasswordSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
+    return;
+  }
+  const { token, newPassword } = parsed.data;
+  let payload: { userId?: string; email?: string; purpose?: string };
+  try {
+    payload = jwt.verify(token, env.JWT_SECRET) as typeof payload;
+  } catch {
+    res.status(400).json({ error: 'Invalid or expired reset link. Request a new one.' });
+    return;
+  }
+  if (payload?.purpose !== 'password_reset' || !payload.userId) {
+    res.status(400).json({ error: 'Invalid reset link.' });
+    return;
+  }
+  const password_hash = await bcrypt.hash(newPassword, 10);
+  await pool.query('UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2', [
+    password_hash,
+    payload.userId,
+  ]);
+  await audit({
+    actorId: payload.userId,
+    actorEmail: payload.email ?? undefined,
+    action: 'auth_password_reset',
+    ipAddress: getClientIp(req),
+  });
+  res.json({ message: 'Password updated. You can sign in with your new password.' });
 });
 
 /** Public: whether SSO is configured (for showing "Sign in with SSO" on login page). */

@@ -36,4 +36,6 @@ export const env = {
   OIDC_SCOPES: process.env.OIDC_SCOPES ?? 'openid profile email',
   /** If 1/true, create user on first SSO login when email not found (default: only existing users). */
   OIDC_CREATE_USER: /^(1|true|yes)$/i.test(process.env.OIDC_CREATE_USER ?? ''),
+  /** Base URL of the frontend app for password reset links (e.g. https://presence.example.com). Required for forgot-password email. */
+  PASSWORD_RESET_APP_URL: process.env.PASSWORD_RESET_APP_URL ?? process.env.CORS_ORIGIN?.split(',')[0]?.trim() ?? '',
 };

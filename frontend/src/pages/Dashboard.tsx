@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
@@ -6,6 +6,7 @@ import { useWebSocket, type AttendanceEvent } from '../hooks/useWebSocket';
 import { queryKeys, fetchSessions, fetchAtRisk } from '../api/queries';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { buttonVariants } from '../components/ui/button';
+import { Input } from '../components/ui/input';
 import { cn } from '../lib/utils';
 
 interface SessionRow {
@@ -19,9 +20,34 @@ interface SessionRow {
   faculty_name: string;
 }
 
+type DateFilter = 'today' | 'week' | 'all';
+
+function sessionInDateRange(s: SessionRow, range: DateFilter): boolean {
+  const started = new Date(s.started_at).getTime();
+  const now = Date.now();
+  if (range === 'today') {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return started >= today.getTime();
+  }
+  if (range === 'week') {
+    const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
+    return started >= weekAgo;
+  }
+  return true;
+}
+
+function sessionMatchesSearch(s: SessionRow, q: string): boolean {
+  if (!q.trim()) return true;
+  const lower = q.trim().toLowerCase();
+  return s.subject.toLowerCase().includes(lower) || s.room.toLowerCase().includes(lower);
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
   const [liveEvents, setLiveEvents] = useState<AttendanceEvent[]>([]);
+  const [dateRange, setDateRange] = useState<DateFilter>('week');
+  const [searchQuery, setSearchQuery] = useState('');
   const { data: sessions = [], isLoading: loading } = useQuery({
     queryKey: queryKeys.sessions,
     queryFn: fetchSessions,
@@ -37,13 +63,49 @@ export default function Dashboard() {
 
   useWebSocket(handleAttendance);
 
-  const activeSessions = (sessions as SessionRow[]).filter((s) => s.status === 'active');
+  const sessionList = sessions as SessionRow[];
+  const filteredSessions = useMemo(() => {
+    return sessionList.filter(
+      (s) => sessionInDateRange(s, dateRange) && sessionMatchesSearch(s, searchQuery)
+    );
+  }, [sessionList, dateRange, searchQuery]);
+  const activeSessions = filteredSessions.filter((s) => s.status === 'active');
+  const recentSessions = filteredSessions.slice(0, 10);
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold text-[var(--text)] tracking-tight">Dashboard</h1>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">Welcome, {user?.full_name}. Monitor classroom engagement here.</p>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-sm text-[var(--text-secondary)]">Filter:</span>
+        <div className="flex gap-2">
+          {(['today', 'week', 'all'] as const).map((r) => (
+            <button
+              key={r}
+              type="button"
+              onClick={() => setDateRange(r)}
+              className={cn(
+                'px-3 py-1.5 rounded text-sm min-h-touch',
+                dateRange === r
+                  ? 'bg-[var(--accent)] text-white'
+                  : 'bg-[var(--bg-elevated)] text-[var(--text)] border border-[var(--border)] hover:bg-[var(--border)]'
+              )}
+            >
+              {r === 'today' ? 'Today' : r === 'week' ? 'This week' : 'All'}
+            </button>
+          ))}
+        </div>
+        <Input
+          type="search"
+          placeholder="Room or subject…"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="max-w-xs min-h-touch"
+          aria-label="Filter by room or subject"
+        />
       </div>
 
       <Card>
@@ -126,7 +188,7 @@ export default function Dashboard() {
         <CardContent>
           {loading ? null : (
             <ul className="space-y-2">
-              {sessions.slice(0, 5).map((s) => (
+              {recentSessions.slice(0, 5).map((s) => (
                 <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-lg border border-[var(--border)] bg-[var(--bg)]">
                   <div>
                     <strong>{s.subject}</strong> — {s.room}

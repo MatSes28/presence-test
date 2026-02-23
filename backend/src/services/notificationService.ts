@@ -43,6 +43,28 @@ export async function notifyGuardian(params: {
   );
 }
 
+/** Send password reset email with link (token in URL). Uses Resend when RESEND_API_KEY and EMAIL_FROM are set. */
+export async function sendPasswordResetEmail(params: {
+  email: string;
+  fullName: string;
+  resetLink: string;
+}): Promise<boolean> {
+  const resend = getResendClient();
+  if (!resend) return false;
+  try {
+    const { error } = await resend.emails.send({
+      from: env.EMAIL_FROM,
+      to: params.email,
+      subject: 'Reset your password',
+      html: `<p>Hi ${params.fullName},</p><p>Click the link below to reset your password (valid for 1 hour):</p><p><a href="${params.resetLink}">${params.resetLink}</a></p><p>If you didn't request this, you can ignore this email.</p>`,
+    });
+    return !error;
+  } catch (err) {
+    console.error('[sendPasswordResetEmail]', err);
+    return false;
+  }
+}
+
 /** Load guardian_email for a user (student). */
 export async function getGuardianEmail(userId: string): Promise<string | null> {
   const r = await pool.query(

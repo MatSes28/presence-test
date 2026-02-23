@@ -25,6 +25,10 @@ async function migrate() {
   if (fs.existsSync(auditPath)) {
     await pool.query(fs.readFileSync(auditPath, 'utf-8'));
   }
+  const optionalPath = path.join(__dirname, 'schema-optional-tables.sql');
+  if (fs.existsSync(optionalPath)) {
+    await pool.query(fs.readFileSync(optionalPath, 'utf-8'));
+  }
   console.log('Migration completed.');
   process.exit(0);
 }

@@ -115,6 +115,7 @@ ESP32-S3 units connect to the same network (WiFi) as the server and send attenda
    | `AUDIT_RETENTION_DAYS` | No | Purge audit_log older than this (default: 365). Set to `0` to disable. |
    | `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_REDIRECT_URI` | No | SSO (see [docs/SSO_OIDC.md](docs/SSO_OIDC.md)). |
    | `SESSION_CREATE_DAYS` | No | Days ahead for cron auto-create (default: 1). Max 31. |
+   | `PASSWORD_RESET_APP_URL` | No | Frontend base URL for password-reset links (e.g. `https://your-app.railway.app`). Required for forgot-password email links. |
 
 6. Build and start:
 
@@ -135,6 +136,7 @@ ESP32-S3 units connect to the same network (WiFi) as the server and send attenda
 
 - **Backup:** `npm run db:backup` (requires `pg_dump` and `DATABASE_URL`). Pipe to a file or gzip. See [docs/RUNBOOK.md](docs/RUNBOOK.md) for restore and audit procedures.
 - **Health:** `GET /health` returns `{ status, service, database }`; use for load balancers and monitoring (503 when DB is down).
+- **API docs:** `GET /api-docs` serves Swagger UI; spec at `GET /api-docs/spec.json`. Forgot-password flow: login page → "Forgot password?" → email link → `/reset-password?token=...` (admin/faculty only; requires `RESEND_API_KEY`, `EMAIL_FROM`, and `PASSWORD_RESET_APP_URL`).
 
 ---
 

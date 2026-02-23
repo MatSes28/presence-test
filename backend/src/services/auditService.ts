@@ -3,6 +3,8 @@ import { pool } from '../db/pool.js';
 export type AuditAction =
   | 'auth_login'
   | 'auth_logout'
+  | 'auth_password_reset_requested'
+  | 'auth_password_reset'
   | 'attendance_report_view'
   | 'attendance_export_csv'
   | 'user_create'

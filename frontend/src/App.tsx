@@ -10,6 +10,8 @@ import AttendanceReport from './pages/AttendanceReport';
 import IotDevices from './pages/IotDevices';
 import Privacy from './pages/Privacy';
 import MyAttendance from './pages/MyAttendance';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 function PrivateRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user, token } = useAuth();
@@ -22,6 +24,8 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/my-attendance" element={<MyAttendance />} />
       <Route
