@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Select } from '../components/ui/select';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import styles from './Users.module.css';
 
 interface StudentRow {
@@ -76,87 +80,101 @@ export default function Users() {
     }
   }
 
-  if (loading) return <p className={styles.muted}>Loading…</p>;
+  if (loading) return <p className="text-[var(--text-muted)]">Loading…</p>;
 
   return (
-    <div className={styles.page}>
-      <h1 className={styles.h1}>Users & RFID</h1>
-      <p className={styles.muted}>Students and their linked RFID cards for attendance.</p>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-semibold">Users & RFID</h1>
+      <p className="text-[var(--text-muted)] text-sm">Students and their linked RFID cards for attendance.</p>
 
       {isAdmin && (
-        <section className={styles.section}>
-          <h2>Create user (Admin)</h2>
-          <form onSubmit={createUser} className={styles.form}>
-            <input
-              type="email"
-              placeholder="Email"
-              value={createForm.email}
-              onChange={(e) => setCreateForm((f) => ({ ...f, email: e.target.value }))}
-              required
-              className={styles.input}
-            />
-            <input
-              type="password"
-              placeholder="Password (min 6)"
-              value={createForm.password}
-              onChange={(e) => setCreateForm((f) => ({ ...f, password: e.target.value }))}
-              required
-              minLength={6}
-              className={styles.input}
-            />
-            <input
-              placeholder="Full name"
-              value={createForm.full_name}
-              onChange={(e) => setCreateForm((f) => ({ ...f, full_name: e.target.value }))}
-              required
-              className={styles.input}
-            />
-            <select
-              value={createForm.role}
-              onChange={(e) => setCreateForm((f) => ({ ...f, role: e.target.value as 'student' | 'faculty' }))}
-              className={styles.select}
-            >
-              <option value="student">Student</option>
-              <option value="faculty">Faculty</option>
-            </select>
-            <button type="submit" disabled={creating} className={styles.button}>
-              {creating ? 'Creating…' : 'Create user'}
-            </button>
-          </form>
-        </section>
+        <Card>
+          <CardHeader>
+            <CardTitle>Create user (Admin)</CardTitle>
+            <CardDescription>Add a new student or faculty account.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={createUser} className="flex flex-wrap gap-3 items-end">
+              <Input
+                type="email"
+                placeholder="Email"
+                value={createForm.email}
+                onChange={(e) => setCreateForm((f) => ({ ...f, email: e.target.value }))}
+                required
+                className="min-w-[200px]"
+              />
+              <Input
+                type="password"
+                placeholder="Password (min 6)"
+                value={createForm.password}
+                onChange={(e) => setCreateForm((f) => ({ ...f, password: e.target.value }))}
+                required
+                minLength={6}
+                className="min-w-[160px]"
+              />
+              <Input
+                placeholder="Full name"
+                value={createForm.full_name}
+                onChange={(e) => setCreateForm((f) => ({ ...f, full_name: e.target.value }))}
+                required
+                className="min-w-[160px]"
+              />
+              <Select
+                value={createForm.role}
+                onChange={(e) => setCreateForm((f) => ({ ...f, role: e.target.value as 'student' | 'faculty' }))}
+                className="min-w-[120px]"
+              >
+                <option value="student">Student</option>
+                <option value="faculty">Faculty</option>
+              </Select>
+              <Button type="submit" disabled={creating}>
+                {creating ? 'Creating…' : 'Create user'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       )}
 
-      <section className={styles.section}>
-        <h2>Link RFID to student</h2>
-        <form onSubmit={linkRfid} className={styles.form}>
-          <select
-            value={rfidForm.user_id}
-            onChange={(e) => setRfidForm((f) => ({ ...f, user_id: e.target.value }))}
-            required
-            className={styles.select}
-          >
-            <option value="">Select student</option>
-            {students.map((s) => (
-              <option key={s.id} value={s.id}>{s.full_name} ({s.email})</option>
-            ))}
-          </select>
-          <input
-            placeholder="Card UID (from reader)"
-            value={rfidForm.card_uid}
-            onChange={(e) => setRfidForm((f) => ({ ...f, card_uid: e.target.value }))}
-            required
-            className={styles.input}
-          />
-          <button type="submit" disabled={adding} className={styles.button}>
-            {adding ? 'Linking…' : 'Link card'}
-          </button>
-        </form>
-      </section>
+      <Card>
+        <CardHeader>
+          <CardTitle>Link RFID to student</CardTitle>
+          <CardDescription>Associate a card UID with a student for attendance.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={linkRfid} className="flex flex-wrap gap-3 items-end">
+            <Select
+              value={rfidForm.user_id}
+              onChange={(e) => setRfidForm((f) => ({ ...f, user_id: e.target.value }))}
+              required
+              className="min-w-[220px]"
+            >
+              <option value="">Select student</option>
+              {students.map((s) => (
+                <option key={s.id} value={s.id}>{s.full_name} ({s.email})</option>
+              ))}
+            </Select>
+            <Input
+              placeholder="Card UID (from reader)"
+              value={rfidForm.card_uid}
+              onChange={(e) => setRfidForm((f) => ({ ...f, card_uid: e.target.value }))}
+              required
+              className="min-w-[180px]"
+            />
+            <Button type="submit" disabled={adding}>
+              {adding ? 'Linking…' : 'Link card'}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
-      <section className={styles.section}>
-        <h2>Students</h2>
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
+      <Card>
+        <CardHeader>
+          <CardTitle>Students</CardTitle>
+          <CardDescription>Students and their linked RFID cards.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
             <thead>
               <tr>
                 <th>Name</th>
@@ -182,12 +200,17 @@ export default function Users() {
               ))}
             </tbody>
           </table>
-        </div>
-      </section>
+          </div>
+        </CardContent>
+      </Card>
 
       {isAdmin && allUsers.length > 0 && (
-        <section className={styles.section}>
-          <h2>All users (Admin)</h2>
+        <Card>
+          <CardHeader>
+            <CardTitle>All users (Admin)</CardTitle>
+            <CardDescription>All accounts in the system.</CardDescription>
+          </CardHeader>
+          <CardContent>
           <div className={styles.tableWrap}>
             <table className={styles.table}>
               <thead>
@@ -208,7 +231,8 @@ export default function Users() {
               </tbody>
             </table>
           </div>
-        </section>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

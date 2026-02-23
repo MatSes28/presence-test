@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Select } from '../components/ui/select';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import styles from './Schedules.module.css';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -69,12 +73,12 @@ export default function Schedules() {
     }
   }
 
-  if (loading) return <p className={styles.muted}>Loading…</p>;
+  if (loading) return <p className="text-[var(--text-muted)]">Loading…</p>;
 
   return (
-    <div className={styles.page}>
-      <h1 className={styles.h1}>Schedules</h1>
-      <p className={styles.muted}>Class schedule configuration (admin can add).</p>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-semibold">Schedules</h1>
+      <p className="text-[var(--text-muted)] text-sm">Class schedule configuration (admin can add).</p>
       {error && (
         <div className={styles.errorBanner} role="alert">
           {error}
@@ -82,62 +86,71 @@ export default function Schedules() {
       )}
 
       {user?.role === 'admin' && (
-        <section className={styles.section}>
-          <h2>Add schedule</h2>
-          <form onSubmit={handleSubmit} className={styles.form}>
-            <input
-              placeholder="Subject"
-              value={form.subject}
-              onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))}
-              required
-              className={styles.input}
-            />
-            <input
-              placeholder="Room"
-              value={form.room}
-              onChange={(e) => setForm((f) => ({ ...f, room: e.target.value }))}
-              required
-              className={styles.input}
-            />
-            <input
-              type="time"
-              value={form.start_time}
-              onChange={(e) => setForm((f) => ({ ...f, start_time: e.target.value }))}
-              className={styles.input}
-            />
-            <input
-              type="time"
-              value={form.end_time}
-              onChange={(e) => setForm((f) => ({ ...f, end_time: e.target.value }))}
-              className={styles.input}
-            />
-            <select
-              value={form.day_of_week}
-              onChange={(e) => setForm((f) => ({ ...f, day_of_week: Number(e.target.value) }))}
-              className={styles.select}
-            >
-              {DAYS.map((d, i) => (
-                <option key={i} value={i}>{d}</option>
-              ))}
-            </select>
-            <select
-              value={form.faculty_id}
-              onChange={(e) => setForm((f) => ({ ...f, faculty_id: e.target.value }))}
-              className={styles.select}
-            >
-              {faculty.map((u) => (
-                <option key={u.id} value={u.id}>{u.full_name}</option>
-              ))}
-            </select>
-            <button type="submit" className={styles.button}>Add</button>
-          </form>
-        </section>
+        <Card>
+          <CardHeader>
+            <CardTitle>Add schedule</CardTitle>
+            <CardDescription>Create a new class slot.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="flex flex-wrap gap-3 items-end">
+              <Input
+                placeholder="Subject"
+                value={form.subject}
+                onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))}
+                required
+                className="min-w-[140px]"
+              />
+              <Input
+                placeholder="Room"
+                value={form.room}
+                onChange={(e) => setForm((f) => ({ ...f, room: e.target.value }))}
+                required
+                className="min-w-[140px]"
+              />
+              <Input
+                type="time"
+                value={form.start_time}
+                onChange={(e) => setForm((f) => ({ ...f, start_time: e.target.value }))}
+                className="min-w-[100px]"
+              />
+              <Input
+                type="time"
+                value={form.end_time}
+                onChange={(e) => setForm((f) => ({ ...f, end_time: e.target.value }))}
+                className="min-w-[100px]"
+              />
+              <Select
+                value={form.day_of_week}
+                onChange={(e) => setForm((f) => ({ ...f, day_of_week: Number(e.target.value) }))}
+                className="min-w-[100px]"
+              >
+                {DAYS.map((d, i) => (
+                  <option key={i} value={i}>{d}</option>
+                ))}
+              </Select>
+              <Select
+                value={form.faculty_id}
+                onChange={(e) => setForm((f) => ({ ...f, faculty_id: e.target.value }))}
+                className="min-w-[160px]"
+              >
+                {faculty.map((u) => (
+                  <option key={u.id} value={u.id}>{u.full_name}</option>
+                ))}
+              </Select>
+              <Button type="submit">Add</Button>
+            </form>
+          </CardContent>
+        </Card>
       )}
 
-      <section className={styles.section}>
-        <h2>All schedules</h2>
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
+      <Card>
+        <CardHeader>
+          <CardTitle>All schedules</CardTitle>
+          <CardDescription>Current class slots by day and time.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
             <thead>
               <tr>
                 <th>Subject</th>
@@ -159,8 +172,9 @@ export default function Schedules() {
               ))}
             </tbody>
           </table>
-        </div>
-      </section>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

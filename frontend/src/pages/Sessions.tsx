@@ -3,7 +3,10 @@ import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { queryKeys, fetchSessions, fetchSchedules } from '../api/queries';
-import styles from './Sessions.module.css';
+import { Button, buttonVariants } from '../components/ui/button';
+import { Select } from '../components/ui/select';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { cn } from '../lib/utils';
 
 interface SessionRow {
   id: string;
@@ -64,84 +67,102 @@ export default function Sessions() {
     });
   }
 
-  if (loading) return <p className={styles.muted}>Loading…</p>;
+  if (loading) return <p className="text-[var(--text-muted)]">Loading…</p>;
 
   const active = sessList.filter((s) => s.status === 'active');
 
   return (
-    <div className={styles.page}>
-      <h1 className={styles.h1}>Class sessions</h1>
-      <p className={styles.muted}>Start and end sessions for attendance recording.</p>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-semibold">Class sessions</h1>
+      <p className="text-[var(--text-muted)] text-sm">Start and end sessions for attendance recording.</p>
 
-      <section className={styles.section}>
-        <h2>Start a session</h2>
-        <div className={styles.formRow}>
-          <select
-            value={selectedSchedule}
-            onChange={(e) => setSelectedSchedule(e.target.value)}
-            className={styles.select}
-          >
-            {schedList.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.subject} — {s.room}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={startSession}
-            disabled={startMutation.isPending || !selectedSchedule}
-            className={styles.button}
-          >
-            {startMutation.isPending ? 'Starting…' : 'Start session'}
-          </button>
-        </div>
-      </section>
+      <Card>
+        <CardHeader>
+          <CardTitle>Start a session</CardTitle>
+          <CardDescription>Choose a schedule and start recording attendance.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-3 items-center">
+            <Select
+              value={selectedSchedule}
+              onChange={(e) => setSelectedSchedule(e.target.value)}
+              className="min-w-[240px]"
+            >
+              {schedList.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.subject} — {s.room}
+                </option>
+              ))}
+            </Select>
+            <Button
+              type="button"
+              onClick={startSession}
+              disabled={startMutation.isPending || !selectedSchedule}
+            >
+              {startMutation.isPending ? 'Starting…' : 'Start session'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
-      <section className={styles.section}>
-        <h2>Active sessions</h2>
-        {active.length === 0 ? (
-          <p className={styles.muted}>No active sessions.</p>
-        ) : (
-          <ul className={styles.list}>
-            {active.map((s) => (
-              <li key={s.id} className={styles.card}>
+      <Card>
+        <CardHeader>
+          <CardTitle>Active sessions</CardTitle>
+          <CardDescription>Sessions currently open for check-ins.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {active.length === 0 ? (
+            <p className="text-[var(--text-muted)]">No active sessions.</p>
+          ) : (
+            <ul className="space-y-2">
+              {active.map((s) => (
+                <li key={s.id} className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-lg border border-[var(--border)] bg-[var(--bg)]">
+                  <div>
+                    <strong>{s.subject}</strong> — {s.room}
+                    <div className="text-sm text-[var(--text-muted)]">{s.faculty_name} · Started {new Date(s.started_at).toLocaleString()}</div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Link to={`/attendance/${s.id}`} className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }))}>
+                      View attendance
+                    </Link>
+                    <Button type="button" variant="destructive" size="sm" onClick={() => endSession(s.id)}>
+                      End session
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent sessions</CardTitle>
+          <CardDescription>Latest class sessions and reports.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ul className="space-y-2">
+            {sessList.slice(0, 15).map((s) => (
+              <li key={s.id} className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg border border-[var(--border)] bg-[var(--bg)]">
                 <div>
                   <strong>{s.subject}</strong> — {s.room}
+                  <span className={`ml-2 text-xs px-2 py-0.5 rounded ${s.status === 'active' ? 'bg-[var(--success)]/20 text-[var(--success)]' : 'bg-[var(--text-muted)]/20'}`}>
+                    {s.status}
+                  </span>
+                  <div className="text-sm text-[var(--text-muted)]">
+                    {new Date(s.started_at).toLocaleString()}
+                    {s.ended_at && ` – ${new Date(s.ended_at).toLocaleString()}`}
+                  </div>
                 </div>
-                <div className={styles.meta}>{s.faculty_name} · Started {new Date(s.started_at).toLocaleString()}</div>
-                <div className={styles.actions}>
-                  <Link to={`/attendance/${s.id}`} className={styles.link}>View attendance</Link>
-                  <button type="button" onClick={() => endSession(s.id)} className={styles.endBtn}>
-                    End session
-                  </button>
-                </div>
+                <Link to={`/attendance/${s.id}`} className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }))}>
+                  View report
+                </Link>
               </li>
             ))}
           </ul>
-        )}
-      </section>
-
-      <section className={styles.section}>
-        <h2>Recent sessions</h2>
-          <ul className={styles.list}>
-            {sessList.slice(0, 15).map((s) => (
-            <li key={s.id} className={styles.card}>
-              <div>
-                <strong>{s.subject}</strong> — {s.room}
-                <span className={s.status === 'active' ? styles.badgeActive : styles.badgeEnded}>
-                  {s.status}
-                </span>
-              </div>
-              <div className={styles.meta}>
-                {new Date(s.started_at).toLocaleString()}
-                {s.ended_at && ` – ${new Date(s.ended_at).toLocaleString()}`}
-              </div>
-              <Link to={`/attendance/${s.id}`} className={styles.link}>View report</Link>
-            </li>
-          ))}
-        </ul>
-      </section>
+        </CardContent>
+      </Card>
     </div>
   );
 }

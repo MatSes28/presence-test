@@ -12,7 +12,7 @@ Attendance monitoring and classroom engagement system for **Central Luzon State 
 | **Styling** | Tailwind CSS | Tailwind + existing CSS vars | ✅ |
 | **Routing** | Wouter | React Router | Same behavior, different library |
 | **State** | TanStack Query | TanStack Query (sessions, schedules) | ✅ |
-| **UI** | Shadcn/ui patterns | Custom components | Can adopt Shadcn later |
+| **UI** | Shadcn/ui patterns | Button, Card, Input (shadcn-style) + custom | ✅ |
 | **Backend** | Node, Express, TypeScript | ✅ Same | |
 | **Database** | PostgreSQL, Drizzle ORM | PostgreSQL, raw `pg` | Drizzle optional for migrations |
 | **Auth** | Session + HTTP-only cookies | JWT (Bearer) | Session/cookies possible later |
@@ -58,7 +58,7 @@ These can be added as needed for guardian notifications, lab usage, and device m
 ## Optional / Future
 
 - ~~Session-based auth with HTTP-only cookies~~ **Done:** JWT in HTTP-only cookie (`clirdec_session`), cookie or Bearer accepted; `GET /api/auth/me`, `POST /api/auth/logout`.
-- Shadcn/ui component library (Tailwind already in use)
+- ~~Shadcn/ui component library~~ **Done:** Button, Card, Input in `components/ui`; used on Login, Schedules, Users, Dashboard, Sessions, IoT Devices.
 - Drizzle ORM and extra tables (Classrooms, Subjects, Enrollments, Computers)
 - ~~IoT device registry~~ **Done:** `iot_devices` table; `GET/POST/PATCH/DELETE /api/iot/devices` (admin); `last_seen_at` updated on attendance
 - ~~Automatic session creation on a schedule (cron calling `/api/sessions/auto-create`)~~ **Done:** `node-cron` runs `AUTO_SESSION_CRON` (default `0 6 * * *`); set to empty to disable.

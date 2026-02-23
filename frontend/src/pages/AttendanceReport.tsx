@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../api/client';
+import { Button, buttonVariants } from '../components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { cn } from '../lib/utils';
 import styles from './AttendanceReport.module.css';
 
 interface SessionInfo {
@@ -86,36 +89,41 @@ export default function AttendanceReport() {
   }
 
   return (
-    <div className={styles.page}>
-      <Link to="/sessions" className={styles.back}>← Sessions</Link>
-      <h1 className={styles.h1}>Attendance report</h1>
-      <div className={styles.sessionInfo}>
-        <strong>{session.subject}</strong> — {session.room}
-        <span className={session.status === 'active' ? styles.badgeActive : styles.badgeEnded}>
-          {session.status}
-        </span>
-        <div className={styles.meta}>
-          Started: {new Date(session.started_at).toLocaleString()}
-          {session.ended_at && ` · Ended: ${new Date(session.ended_at).toLocaleString()}`}
-        </div>
-        {stats && (
-          <div className={styles.stats}>
-            <span>Present: <strong>{stats.presentCount}</strong></span>
-            <span>Late: <strong>{stats.lateCount}</strong></span>
-            <span>Total recorded: <strong>{stats.totalRecorded}</strong></span>
-          </div>
-        )}
-      </div>
+    <div className="space-y-6">
+      <Link to="/sessions" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}>← Sessions</Link>
+      <h1 className="text-2xl font-semibold">Attendance report</h1>
 
-      <section className={styles.section}>
-        <div className={styles.sectionHead}>
-          <h2>Recorded attendance ({attendance.length})</h2>
-          <button type="button" onClick={exportCsv} className={styles.exportBtn}>
-            Export CSV
-          </button>
-        </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>{session.subject} — {session.room}</CardTitle>
+          <CardDescription>
+            <span className={`text-xs px-2 py-0.5 rounded ${session.status === 'active' ? 'bg-[var(--success)]/20 text-[var(--success)]' : 'bg-[var(--text-muted)]/20'}`}>{session.status}</span>
+            {' · '}Started: {new Date(session.started_at).toLocaleString()}
+            {session.ended_at && ` · Ended: ${new Date(session.ended_at).toLocaleString()}`}
+          </CardDescription>
+        </CardHeader>
+        {stats && (
+          <CardContent className="pt-0">
+            <div className="flex gap-4 text-sm">
+              <span>Present: <strong>{stats.presentCount}</strong></span>
+              <span>Late: <strong>{stats.lateCount}</strong></span>
+              <span>Total recorded: <strong>{stats.totalRecorded}</strong></span>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Recorded attendance ({attendance.length})</CardTitle>
+            <CardDescription>Check-ins for this session.</CardDescription>
+          </div>
+          <Button variant="secondary" size="sm" onClick={exportCsv}>Export CSV</Button>
+        </CardHeader>
+        <CardContent>
         {attendance.length === 0 ? (
-          <p className={styles.muted}>No attendance recorded yet.</p>
+          <p className="text-[var(--text-muted)]">No attendance recorded yet.</p>
         ) : (
           <div className={styles.tableWrap}>
             <table className={styles.table}>
@@ -142,7 +150,8 @@ export default function AttendanceReport() {
             </table>
           </div>
         )}
-      </section>
+        </CardContent>
+      </Card>
     </div>
   );
 }
