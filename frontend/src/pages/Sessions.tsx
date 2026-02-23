@@ -172,7 +172,7 @@ export default function Sessions() {
                 <li key={s.id} className="flex items-center gap-3 p-3 rounded-lg border border-[var(--border)] bg-[var(--bg)]">
                   <strong>{s.subject}</strong> — {s.room}
                   <span className="text-xs text-[var(--text-muted)]">
-                    Auto-starts at {new Date(s.started_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })} · {s.faculty_name}
+                    Auto-starts at {formatTime(s.start_time)} · {s.faculty_name}
                   </span>
                 </li>
               ))}

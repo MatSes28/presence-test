@@ -176,9 +176,9 @@ if (env.AUTO_SESSION_CRON) {
 // Cron: every minute — activate scheduled sessions when start time reached, end active when end time reached, mark absent.
 cron.schedule('* * * * *', async () => {
   try {
-    const { activated, ended, absentMarked } = await runSessionLifecycle();
-    if (activated > 0 || ended > 0 || absentMarked > 0) {
-      console.log(`[cron] Session lifecycle: ${activated} activated, ${ended} ended, ${absentMarked} absent marked`);
+    const { activated, ended, absentMarked, closedPast } = await runSessionLifecycle();
+    if (activated > 0 || ended > 0 || absentMarked > 0 || closedPast > 0) {
+      console.log(`[cron] Session lifecycle: ${activated} activated, ${ended} ended, ${absentMarked} absent marked, ${closedPast} past scheduled closed`);
     }
   } catch (err) {
     console.error('[cron] Session lifecycle failed:', err);
@@ -186,9 +186,9 @@ cron.schedule('* * * * *', async () => {
 });
 
 // On startup: run lifecycle once so sessions activate/end correctly if server was down (fully time-based).
-runSessionLifecycle().then(({ activated, ended, absentMarked }) => {
-  if (activated > 0 || ended > 0 || absentMarked > 0) {
-    console.log(`[startup] Session lifecycle: ${activated} activated, ${ended} ended, ${absentMarked} absent marked`);
+runSessionLifecycle().then(({ activated, ended, absentMarked, closedPast }) => {
+  if (activated > 0 || ended > 0 || absentMarked > 0 || closedPast > 0) {
+    console.log(`[startup] Session lifecycle: ${activated} activated, ${ended} ended, ${absentMarked} absent marked, ${closedPast} past scheduled closed`);
   }
 }).catch((err) => console.error('[startup] Session lifecycle failed:', err));
 
