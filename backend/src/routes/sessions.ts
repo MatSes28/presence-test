@@ -89,6 +89,14 @@ router.get('/active', requireRoles('admin', 'faculty'), async (req, res) => {
   res.json(result.rows);
 });
 
+/** Format time string (HH:MM or HH:MM:SS) for display. */
+function formatTime(timeStr: string): string {
+  const [h, m] = String(timeStr).split(':').map(Number);
+  const h12 = (h ?? 0) % 12 || 12;
+  const ampm = (h ?? 0) < 12 ? 'AM' : 'PM';
+  return `${h12}:${String(m ?? 0).padStart(2, '0')} ${ampm}`;
+}
+
 router.post('/start', requireRoles('admin', 'faculty'), async (req, res) => {
   const parsed = createSessionSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -104,17 +112,67 @@ router.post('/start', requireRoles('admin', 'faculty'), async (req, res) => {
     }
   }
   const scheduleRow = await pool.query(
-    'SELECT start_time FROM schedules WHERE id = $1',
+    'SELECT start_time, end_time, day_of_week FROM schedules WHERE id = $1',
     [schedule_id]
   );
-  const startTime = scheduleRow.rows[0]?.start_time;
+  if (scheduleRow.rows.length === 0) {
+    return res.status(404).json({ error: 'Schedule not found' });
+  }
+  const schedule = scheduleRow.rows[0];
+  const startTime = schedule.start_time;
+  const dayOfWeek = parseInt(String(schedule.day_of_week), 10);
   const now = new Date();
+  const todayDay = now.getDay();
+
+  // Manual start only for today's schedule (sessions are created automatically for the schedule's day).
+  if (dayOfWeek !== todayDay) {
+    return res.status(400).json({
+      error: 'Schedule is not for today',
+      message: 'Manual start is only for recovery on the same day. Sessions for this schedule are created and activated automatically on its scheduled day.',
+    });
+  }
+
+  // Time-based rule: manual start only when the scheduled time has passed (by at least 1 minute).
+  // So at 11:00 PM you cannot start an 11:00 PM schedule — it will auto-start. You cannot start any schedule whose start time is in the future or "now".
+  if (todayDay === dayOfWeek && startTime) {
+    const [sh, sm] = String(startTime).split(':').map(Number);
+    const scheduledStartToday = new Date(now);
+    scheduledStartToday.setHours(sh ?? 0, sm ?? 0, 0, 0);
+    const oneMinuteMs = 60 * 1000;
+    if (scheduledStartToday.getTime() > now.getTime()) {
+      return res.status(400).json({
+        error: 'Cannot start session early',
+        message: `This class is scheduled for ${formatTime(startTime)}. It will start automatically at that time. You cannot start it early.`,
+      });
+    }
+    if (now.getTime() - scheduledStartToday.getTime() < oneMinuteMs) {
+      return res.status(400).json({
+        error: 'Session will start automatically',
+        message: `This class is at ${formatTime(startTime)}. It will start automatically within a minute. You cannot start it manually.`,
+      });
+    }
+  }
+
+  // One session per schedule per day: if any session exists for this schedule today (scheduled, active, or ended), reject.
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+  const existing = await pool.query(
+    `SELECT 1 FROM class_sessions WHERE schedule_id = $1 AND started_at >= $2`,
+    [schedule_id, todayStart.toISOString()]
+  );
+  if (existing.rows.length > 0) {
+    return res.status(400).json({
+      error: 'Session already exists for today',
+      message: `A session for this schedule already exists for today (scheduled, active, or completed). Sessions are time-based and automatic; you cannot create a second session for the same day.`,
+    });
+  }
+
   let startedAt = now;
-  if (startTime) {
+  if (startTime && todayDay === dayOfWeek) {
     const [h, m, s] = String(startTime).split(':').map(Number);
-    const todayStart = new Date(now);
-    todayStart.setHours(h ?? 0, m ?? 0, s ?? 0, 0);
-    if (todayStart.getTime() <= now.getTime()) startedAt = todayStart;
+    const todayStartTime = new Date(now);
+    todayStartTime.setHours(h ?? 0, m ?? 0, s ?? 0, 0);
+    if (todayStartTime.getTime() <= now.getTime()) startedAt = todayStartTime;
   }
   const insert = await pool.query(
     `INSERT INTO class_sessions (schedule_id, status, started_at) VALUES ($1, 'active', $2) RETURNING *`,

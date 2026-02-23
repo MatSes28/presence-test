@@ -25,6 +25,9 @@ interface ScheduleOption {
   id: string;
   subject: string;
   room: string;
+  start_time: string;
+  end_time: string;
+  day_of_week: number;
   faculty_name?: string;
 }
 
@@ -57,7 +60,11 @@ export default function Sessions() {
   function startSession() {
     if (!selectedSchedule) return;
     startMutation.mutate(selectedSchedule, {
-      onError: (e) => alert((e as Error).message),
+      onError: (e: unknown) => {
+        const err = e as { message?: string; response?: { data?: { message?: string } } };
+        const msg = err?.response?.data?.message ?? err?.message ?? 'Failed to start session';
+        alert(msg);
+      },
     });
   }
 
@@ -73,17 +80,42 @@ export default function Sessions() {
   const scheduled = sessList.filter((s) => s.status === 'scheduled');
   const statusLabel = (status: string) => (status === 'scheduled' ? 'Scheduled' : status === 'active' ? 'Active' : 'Completed');
 
+  const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const selectedScheduleData = schedList.find((s) => s.id === selectedSchedule);
+  const now = new Date();
+  const todayDay = now.getDay();
+  const ONE_MINUTE_MS = 60 * 1000;
+  // Manual start only for today's schedule, and only when scheduled start has passed by at least 1 minute (recovery). Otherwise system is fully time-based/automatic.
+  const cannotStartManually = (() => {
+    if (!selectedScheduleData) return true;
+    if (selectedScheduleData.day_of_week !== todayDay) return true; // not today — sessions auto-create for the schedule's day only
+    const [h, m] = String(selectedScheduleData.start_time).split(':').map(Number);
+    const startToday = new Date(now);
+    startToday.setHours(h ?? 0, m ?? 0, 0, 0);
+    const startMs = startToday.getTime();
+    const nowMs = now.getTime();
+    if (startMs > nowMs) return true; // future — will auto-start
+    if (nowMs - startMs < ONE_MINUTE_MS) return true; // at or within 1 min of start — auto-start handles it
+    return false;
+  })();
+  const formatTime = (timeStr: string) => {
+    const [h, m] = String(timeStr).split(':').map(Number);
+    const h12 = (h ?? 0) % 12 || 12;
+    const ampm = (h ?? 0) < 12 ? 'AM' : 'PM';
+    return `${h12}:${String(m ?? 0).padStart(2, '0')} ${ampm}`;
+  };
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold text-[var(--text)] tracking-tight">Class sessions</h1>
-        <p className="mt-1 text-sm text-[var(--text-secondary)]">Scheduled sessions auto-activate at start time and auto-complete at end time. You can also start or end sessions manually.</p>
+        <p className="mt-1 text-sm text-[var(--text-secondary)]">Sessions start and end automatically at the scheduled times. Manual start is only for starting early when the scheduled time has already passed and no session exists yet.</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Start a session</CardTitle>
-          <CardDescription>Choose a schedule and start recording attendance.</CardDescription>
+          <CardTitle>Start a session manually</CardTitle>
+          <CardDescription>Only use this when a class should have started already (same day) and no session is active yet. Sessions normally start automatically at their scheduled time.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-3 items-center">
@@ -94,18 +126,25 @@ export default function Sessions() {
             >
               {schedList.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.subject} — {s.room}
+                  {s.subject} — {s.room} ({DAYS[s.day_of_week]} {formatTime(s.start_time)})
                 </option>
               ))}
             </Select>
             <Button
               type="button"
               onClick={startSession}
-              disabled={startMutation.isPending || !selectedSchedule}
+              disabled={startMutation.isPending || !selectedSchedule || cannotStartManually}
             >
               {startMutation.isPending ? 'Starting…' : 'Start session'}
             </Button>
           </div>
+          {cannotStartManually && selectedScheduleData && (
+            <p className="mt-3 text-sm text-[var(--warning)]" role="alert">
+              {selectedScheduleData.day_of_week === todayDay
+                ? `This class is at ${formatTime(selectedScheduleData.start_time)}. It will start automatically at that time. Manual start is only for recovery after the scheduled time has passed (and no session exists).`
+                : `This schedule is for ${DAYS[selectedScheduleData.day_of_week]}. Sessions start automatically on that day; manual start is only for today's schedule (recovery).`}
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -113,7 +152,7 @@ export default function Sessions() {
         <Card>
           <CardHeader>
             <CardTitle>Scheduled (upcoming)</CardTitle>
-            <CardDescription>These sessions will activate automatically at their start time.</CardDescription>
+            <CardDescription>These sessions will start automatically at the time shown. The server checks every minute.</CardDescription>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
@@ -121,7 +160,7 @@ export default function Sessions() {
                 <li key={s.id} className="flex items-center gap-3 p-3 rounded-lg border border-[var(--border)] bg-[var(--bg)]">
                   <strong>{s.subject}</strong> — {s.room}
                   <span className="text-xs text-[var(--text-muted)]">
-                    {new Date(s.started_at).toLocaleString()} · {s.faculty_name}
+                    Auto-starts at {new Date(s.started_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })} · {s.faculty_name}
                   </span>
                 </li>
               ))}

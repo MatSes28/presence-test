@@ -185,6 +185,13 @@ cron.schedule('* * * * *', async () => {
   }
 });
 
+// On startup: run lifecycle once so sessions activate/end correctly if server was down (fully time-based).
+runSessionLifecycle().then(({ activated, ended, absentMarked }) => {
+  if (activated > 0 || ended > 0 || absentMarked > 0) {
+    console.log(`[startup] Session lifecycle: ${activated} activated, ${ended} ended, ${absentMarked} absent marked`);
+  }
+}).catch((err) => console.error('[startup] Session lifecycle failed:', err));
+
 // Cron: purge old audit log (daily at 3 AM). AUDIT_RETENTION_DAYS=0 to disable.
 if (env.AUDIT_RETENTION_DAYS > 0) {
   cron.schedule('0 3 * * *', async () => {

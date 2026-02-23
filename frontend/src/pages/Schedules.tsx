@@ -97,6 +97,14 @@ export default function Schedules() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (user?.role !== 'admin') return;
+    const [sh, sm] = form.start_time.split(':').map(Number);
+    const [eh, em] = form.end_time.split(':').map(Number);
+    const startMins = (sh ?? 0) * 60 + (sm ?? 0);
+    const endMins = (eh ?? 0) * 60 + (em ?? 0);
+    if (endMins <= startMins) {
+      alert('End time must be after start time.');
+      return;
+    }
     try {
       await api.post('/api/schedules', {
         ...form,

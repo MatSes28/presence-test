@@ -48,6 +48,15 @@ router.post('/', requireRoles('admin'), async (req, res) => {
     res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
     return;
   }
+  const { start_time, end_time } = parsed.data;
+  const [sh, sm] = String(start_time).split(':').map(Number);
+  const [eh, em] = String(end_time).split(':').map(Number);
+  const startMins = (sh ?? 0) * 60 + (sm ?? 0);
+  const endMins = (eh ?? 0) * 60 + (em ?? 0);
+  if (endMins <= startMins) {
+    res.status(400).json({ error: 'End time must be after start time' });
+    return;
+  }
   const insert = await pool.query(
     `INSERT INTO schedules (subject, room, start_time, end_time, day_of_week, faculty_id, classroom_id, subject_id, device_id)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
