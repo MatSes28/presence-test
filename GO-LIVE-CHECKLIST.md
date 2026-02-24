@@ -14,12 +14,13 @@ Use this to confirm you’re done before (and after) deploying to production.
   - [ ] `NODE_ENV=production`
 - [ ] Build: `npm run build` | Start: `npm run start` (or root directory = repo root).
 - [ ] First deploy completed; service is running.
-- [ ] **Migrations run once** in Railway shell: `npm run db:migrate`
-- [ ] First admin created (replace `YOUR-APP-URL` with your Railway URL):
+- [ ] **Migrations:** Either set **Pre-deploy Command** to `npm run db:migrate` in Railway (Deploy settings), or run `npm run db:migrate` once in Railway Shell.
+- [ ] First admin created (from your machine, replace `https://your-app.railway.app` with your URL):
   ```bash
-  curl -X POST https://YOUR-APP-URL/api/auth/register -H "Content-Type: application/json" -d "{\"email\":\"admin@school.com\",\"password\":\"YOUR_SECURE_PASSWORD\",\"full_name\":\"Admin\",\"role\":\"admin\"}"
+  RAILWAY_URL=https://your-app.railway.app npm run create-admin
   ```
-- [ ] Logged in at `https://YOUR-APP-URL` with that admin.
+  Or set a custom password: `ADMIN_PASSWORD=YourSecurePassword RAILWAY_URL=https://your-app.railway.app npm run create-admin`
+- [ ] Logged in at your app URL with that admin.
 
 ---
 
