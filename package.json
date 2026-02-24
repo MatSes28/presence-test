@@ -5,6 +5,7 @@
   "type": "module",
   "description": "CLIRDEC: Presence-Proximity and RFID-Enabled Smart Entry for Notation of Classroom Engagement",
   "scripts": {
+    "setup": "npm install && npm run db:migrate",
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",

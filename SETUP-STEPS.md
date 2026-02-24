@@ -4,6 +4,21 @@ Follow **either** Part A (run on your PC) **or** Part B (deploy on Railway).
 
 ---
 
+## Quick start (Node + PostgreSQL already installed)
+
+1. Create the database: `createdb clirdec`
+2. Ensure `.env` exists in the project root (one is created with defaults; edit `DATABASE_URL` if your Postgres user/password differ).
+3. From the project root run:
+   - **Option A:** `npm run setup` then `npm run dev`
+   - **Option B (Windows):** `scripts\setup-and-run.bat`
+4. In another terminal, create the first admin:
+   ```bash
+   curl -X POST http://localhost:3001/api/auth/register -H "Content-Type: application/json" -d "{\"email\":\"admin@school.com\",\"password\":\"admin123\",\"full_name\":\"Admin\",\"role\":\"admin\"}"
+   ```
+5. Open http://localhost:5173 and log in with `admin@school.com` / `admin123`.
+
+---
+
 ## Part A: Run on your computer (local)
 
 ### Step 1: Install Node.js
